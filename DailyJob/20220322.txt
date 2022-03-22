@@ -1,0 +1,19 @@
+--- JR 
+        -- 大类标准周转天数计算
+        -- Step 0 :取 日结的库存
+        select * into #Tmp_mdkc from  [122.147.160.32].DApplicationBI.dbo.V_D_PRICE_AND_STOCK
+
+        select c_gcode sspbh,c_number nkcsl   from openquery( [122.147.160.20],'select * from tbs_day_inventory where c_store_id=''015901''
+        and c_day_date=trunc(sysdate-1)');
+
+        -- Step 1:商品表 分店表 分类表准备
+        select * into #Tmp_fdb from [122.147.160.32].DApplicationBI.dbo.Tmp_fdb
+
+        select * into #Tmp_flb from [122.147.160.32].DApplicationBI.dbo.Tmp_spflb
+
+        select * into #Tmp_mdspb from [122.147.160.32].DApplicationBI.dbo.P_SHOP_ITEM_OUTPUT
+
+        -- 近30天销售准备
+        select * into #Tmp_xs from [122.147.10.200].Dappsource.dbo.Tmp_xs a
+        where 1=1 and  a.drq>=convert(date,getdate()-30) 
+        and a.drq<CONVERT(date,GETDATE());
