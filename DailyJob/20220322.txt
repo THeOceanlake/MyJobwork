@@ -12,8 +12,35 @@
         select * into #Tmp_flb from [122.147.160.32].DApplicationBI.dbo.Tmp_spflb
 
         select * into #Tmp_mdspb from [122.147.160.32].DApplicationBI.dbo.P_SHOP_ITEM_OUTPUT
-
+        select * into #goods from [122.147.160.32].DApplicationBI.dbo.goods
         -- 近30天销售准备
         select * into #Tmp_xs from [122.147.10.200].Dappsource.dbo.Tmp_xs a
         where 1=1 and  a.drq>=convert(date,getdate()-30) 
         and a.drq<CONVERT(date,GETDATE());
+
+        -- Step 2:基础表生成
+        /*
+            --排除母婴、生超、加盟门店
+            -- 排除联营商品
+            -- 排除停购商品
+            -- 分类为20-39，含 '1105','1307','1309','1406' ，不包含烟2201
+            -- 
+        */
+        select a.dept_code sfdbh,b.sfdmc,a.item_code sspbh,c.name sspmc,c.sort sflbh,
+        a.shift_price njj,a.retail_price nlsj,a.display_mode,a.c_introduce_date,c.isnormal,c.scgqy into #Base_sp from #Tmp_mdspb a
+        join #Tmp_fdb b on a.dept_code=b.sfdbh
+        join  #goods c  on c.code=a.item_code
+        -- join #tmp_flb d on c.sort=d.sflbh
+        where 1=1 and b.sfdmc not like '%取消%'
+            and  b.sJc not like '%取消%' and b.sjylx='连锁门店' and b.smdlx not in('母婴中心','生活超市')
+            and b.dkyrq is not null and 
+        (( c.sort>='20' and c.sort<'40') or (
+        LEFT(c.sort,4) in ('1105','1307','1309','1406') ))
+        and LEFT(c.sort,4)<>'2201'  and   a.STOP_INTO='N' and a.STOP_SALE='N' and a.VALIDATE_FLAG='Y'
+        and a.character_type='N';
+
+        -- Step 3:昨晚库存？ 有进价和售价的区分
+        select * from #Base_sp a 
+        left join #tmp_mdkc b on a.sfdbh=b.store_code and a.sspbh=b.item_code 
+
+        select * from #Tmp_mdkc
