@@ -1,0 +1,167 @@
+-- 周转过大 超出库存金额
+
+--Step 0 :-- 商品范围
+
+select a.DEPT_CODE sFdbh,a.ITEM_CODE sSpbh,b.sspmc,b.sPlbh,a.SHOP_SUPPLIER_CODE sgys,
+a.SHIFT_PRICE njj,a.RETAIL_PRICE nsj, 
+case when a.SEND_CLASS_T='01' then '配送' when a.SEND_CLASS_T='02' then '直送'
+when a.SEND_CLASS_T='03' then '一步越库' when a.SEND_CLASS_T='04' then '二步越库' end spsfs
+,e.nrjxl*a.RETAIL_PRICE nrjxse,e.nsx nzgsl,e.nxx nzdsl,e.nrjxl,e.nzdcl,e.nzdcl_offset
+,e.nZdcl_Offset_Bdate,e.nZdcl_Offset_Edate,e.ifPromotion,d.qpc ncgbzs,a.min_purchase_qty nPsbzs
+into #Base_sp
+from [122.147.160.32].DApplicationBI.dbo.P_SHOP_ITEM_OUTPUT a
+join [122.147.10.202].dappresult.dbo.R_dpzb b 
+on a.DEPT_CODE=b.sfdbh and a.ITEM_CODE=b.sspbh
+join [122.147.160.32].DApplicationBI.dbo.goods d on a.ITEM_CODE=d.code
+left join [122.147.10.200].dappsource.dbo.sys_deliveryset e on a.DEPT_CODE=e.sfdbh and a.ITEM_CODE=e.sspbh
+where 1=1 and   a.DEPT_CODE in ('018329','012006','012007','018389','018418','018336','018425') and a.STOP_INTO='N' and a.STOP_SALE='N' and a.VALIDATE_FLAG='Y'
+and b.enddate>GETDATE()-13 and
+(( d.sort>'20' and d.sort<'40') or (
+LEFT(d.sort,4) in ('1105','1307','1309','1406') ))
+and LEFT(d.sort,4)<>'2201';
+
+
+
+-- Step 2 kucu
+select * into #tmp_kc from  [122.147.160.32].DApplicationBI.dbo.V_D_PRICE_AND_STOCK b
+where  STORE_CODE in ('018329','012006','012007','018389','018418','018336','018425')
+
+-- 总库存金额
+select a.*,ISNULL(b.CURR_STOCK,0) nkcsl into #zkc from #Base_sp a 
+left join #tmp_kc b on a.sfdbh=b.STORE_CODE and a.sspbh=b.item_code
+
+-- 大库存
+
+select *,nkc*njj nkcje,nkc*njj-njj*case when nbzzzts*nrjxl>5 then nbzzzts*nrjxl
+else 5 end nccje ,case when nbzzzts*nrjxl>5 then  nbzzzts*nrjxl
+else  5 end nblkc into #2 from  dbo.Tmp_mdspzzyy 
+where drq=convert(date,getdate())  
+and sfdbh in ('018329','012006','012007','018389','018425')
+
+with x0 as (
+select sfdbh,count(1) nsps,sum(isnull(nkcsl*njj,0)) nzkcje from #zkc 
+where sfdbh in ('018329','012006','012007','018389','018425') group by sfdbh)
+,x1 as (select sfdbh,count(1) nsps,sum(nkcje) ndkje,sum(nccje)nccje  from #2 group by sfdbh)
+select a.sfdbh,c.sfdmc,a.nsps,b.nsps,a.nzkcje,b.ndkje,b.nccje from x0 a 
+left join x1 b on a.sfdbh=b.sfdbh
+left join [122.147.160.32].DApplicationBI.dbo.Tmp_fdb c on a.sfdbh=c.sfdbh
+order by 1;
+
+商品范围是20-39类，包含11冷冻品肉类、蛋品和水产类，排除烟；
+大库存标准：库存数量大于6，库存金额>50,配送商品标准周转天数55，非配送标准天数65
+
+--------------
+select *,nkc*njj nkcje,nkc*njj-njj*case when nbzzzts*nrjxl>5 then nbzzzts*nrjxl
+else 5 end nccje ,case when nbzzzts*nrjxl>5 then  nbzzzts*nrjxl
+else  5 end nblkc into #2 from  dbo.Tmp_mdspzzyy 
+where drq=convert(date,getdate())  
+and sfdbh in ('018329','012006','012007','018389','018425')
+
+with x0 as (
+select sfdbh,count(1) nsps,sum(isnull(nkcsl*njj,0)) nzkcje from #zkc 
+where sfdbh in ('018329','012006','012007','018389','018425') group by sfdbh)
+,x1 as (select sfdbh,count(1) nsps,sum(nkcje) ndkje,sum(nccje)nccje  from #2 group by sfdbh)
+select a.sfdbh,c.sfdmc,a.nsps,b.nsps,a.nzkcje,b.ndkje,b.nccje from x0 a 
+left join x1 b on a.sfdbh=b.sfdbh
+left join [122.147.160.32].DApplicationBI.dbo.Tmp_fdb c on a.sfdbh=c.sfdbh
+order by 1;
+
+
+--1、排除季节性品类 SeasonalSp_Set       
+--2、 排除 正促销、一个月内有促销商品；tmp_Promotion
+--3、t_sdmdtable slx in('正常品','低周转','滞销品')
+--4、日均nday<0.05
+--5、范围常温商品：goods WHERE isnormal='常温商品'
+--6、排除新品
+DROP TABLE #1
+---200服务器,dappsource库 
+
+select * into #sys_deliveryset
+ from [122.147.10.200].Dappsource.dbo.sys_deliveryset where sfdbh in  ('018329','012006','012007','018389','018425');
+
+ select * into #tmp_mdsp
+ from [122.147.10.200].Dappsource.dbo.p_shop_item_output where dept_code in  ('018329','012006','012007','018389','018425');
+
+ select * into #t_sdmdtable
+ from [122.147.10.200].Dappsource.dbo.t_sdmdtable where sfdbh in  ('018329','012006','012007','018389','018425');
+
+ select * into #goods
+ from [122.147.10.200].Dappsource.dbo.goods  ;
+
+
+  select * into #tmp_Promotion
+ from [122.147.10.200].Dappsource.dbo.tmp_Promotion where sfdbh in  ('018329','012006','012007','018389','018425')
+   AND edate>=GETDATE()-1 AND bdate<GETDATE()+30 AND edate>=bdate;
+
+
+   -- jisuna
+select a.sfdbh,a.sspbh,a.sspmc,a.njj,a.nkc,a.ncgbzs,b.nrjxl,b.njyxx,case when (b.nrjxl*15+b.njyxx)<5 then 5 else (b.nrjxl*15+b.njyxx) end as blsl,
+d.slx into #1 from  dappsource_Dw.dbo.tmp_mdspzzyy a,#sys_deliveryset b,#tmp_mdsp c,#t_sdmdtable d,#goods e
+where a.sfdbh=b.sfdbh AND b.sfdbh=c.dept_code AND c.dept_code=d.sfdbh 
+and a.sfdbh in  ('018329','012006','012007','018389','018425') and a.drq=convert(date,getdate()) AND a.sspbh=b.sspbh 
+AND b.sspbh=c.item_code AND c.item_code=d.sspbh AND d.sspbh=e.code AND c.c_introduce_date<GETDATE()-60
+AND d.slx in('正常品','低周转','滞销品') AND d.nday<0.05 AND e.isnormal='常温商品' 
+AND left(e.sort,4) not in ('2106','2208','3102','3903') AND left(e.sort,6) not in ('210506','230402','250201','370125')
+AND e.sort not in ('23060302','33021201','33021202','33021204','33021205','33021206','33021207','33021208') 
+AND  not exists (select 1  FROM #tmp_Promotion t WHERE a.sfdbh=t.sfdbh and a.sspbh=t.sspbh)
+
+
+
+--Step 0 :-- 商品范围 drop table #Base_sp
+
+select a.DEPT_CODE sFdbh,a.ITEM_CODE sSpbh,b.sspmc,b.sPlbh,a.SHOP_SUPPLIER_CODE sgys,
+a.SHIFT_PRICE njj,a.RETAIL_PRICE nsj, a.stop_into,a.stop_sale,
+case when a.SEND_CLASS_T='01' then '配送' when a.SEND_CLASS_T='02' then '直送'
+when a.SEND_CLASS_T='03' then '一步越库' when a.SEND_CLASS_T='04' then '二步越库' end spsfs
+,e.nrjxl*a.RETAIL_PRICE nrjxse,e.nsx nzgsl,e.nxx nzdsl,e.nrjxl,e.nzdcl,e.nzdcl_offset
+,e.nZdcl_Offset_Bdate,e.nZdcl_Offset_Edate,e.ifPromotion,d.qpc ncgbzs,a.min_purchase_qty nPsbzs
+into #Base_sp
+from #tmp_mdsp a
+join [122.147.10.202].dappresult.dbo.R_dpzb b 
+on a.DEPT_CODE=b.sfdbh and a.ITEM_CODE=b.sspbh
+join #goods d on a.ITEM_CODE=d.code
+left join #sys_deliveryset e on a.DEPT_CODE=e.sfdbh and a.ITEM_CODE=e.sspbh
+where 1=1 and   a.DEPT_CODE in ('018329','012006','012007','018389','018418','018336','018425') 
+ and a.STOP_SALE='N' and a.VALIDATE_FLAG='Y'
+and b.enddate>GETDATE()-13 and
+(( d.sort>'20' and d.sort<'40') or (
+LEFT(d.sort,4) in ('1105','1307','1309','1406') ))
+and LEFT(d.sort,4)<>'2201';
+
+
+
+-- Step 2 kucu
+select * into #tmp_kc from  [122.147.160.32].DApplicationBI.dbo.V_D_PRICE_AND_STOCK b
+where  STORE_CODE in ('018329','012006','012007','018389','018418','018336','018425')
+
+-- 总库存金额 drop table #zkc
+select a.*,ISNULL(b.CURR_STOCK,0) nkcsl into #zkc from #Base_sp a 
+left join #tmp_kc b on a.sfdbh=b.STORE_CODE and a.sspbh=b.item_code
+
+-- 大库存
+
+select *,nkc*njj nkcje,nkc*njj-njj*case when nbzzzts*nrjxl>5 then nbzzzts*nrjxl
+else 5 end nccje ,case when nbzzzts*nrjxl>5 then  nbzzzts*nrjxl
+else  5 end nblkc into #2 from  dappsource_dw.dbo.Tmp_mdspzzyy 
+where drq=convert(date,getdate())  
+and sfdbh in ('018329','012006','012007','018389','018425')
+
+with x0 as (
+select sfdbh,count(1) nsps,sum(isnull(nkcsl*njj,0)) nzkcje,sum(case when Stop_into<>'N'
+then isnull(nkcsl*njj,0) else 0 end ) ntgkcje from #zkc 
+where sfdbh in ('018329','012006','012007','018389','018425') group by sfdbh)
+,x1 as (select sfdbh,count(1) nsps,sum(nkcje) ndkje,sum(nccje)nccje  from #2 group by sfdbh)
+,x2 as(select t1.sfdbh,sum(nktje) nccje from
+(select #1.*,(case when floor((nkc-blsl))<=0 then 0 else floor((nkc-blsl)) end)*njj  nktje  from #1 )t1
+group by t1.sfdbh)
+select a.sfdbh,c.sfdmc,a.nsps,b.nsps,a.nzkcje,a.ntgkcje,b.ndkje,b.nccje,d.nccje nccje1 from x0 a 
+left join x1 b on a.sfdbh=b.sfdbh
+left join [122.147.160.32].DApplicationBI.dbo.Tmp_fdb c on a.sfdbh=c.sfdbh
+left join x2  d on a.sfdbh=d.sfdbh
+order by 1;
+
+select * from #zkc 
+
+select t1.sfdbh,sum(nktje) nccje from
+(select #1.*,(case when floor((nkc-blsl))<=0 then 0 else floor((nkc-blsl)) end)*njj  nktje  from #1 )t1
+group by t1.sfdbh

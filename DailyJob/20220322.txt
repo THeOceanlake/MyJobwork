@@ -1,9 +1,8 @@
 --- JR 
         -- 大类标准周转天数计算
         -- Step 0 :取 日结的库存
-        select * into #Tmp_mdkc from  [122.147.160.32].DApplicationBI.dbo.V_D_PRICE_AND_STOCK
-
-        select c_gcode sspbh,c_number nkcsl   from openquery( [122.147.160.20],'select * from tbs_day_inventory where c_store_id=''015901''
+        select c_store_id sfdbh,c_gcode sspbh,c_number nkcsl into #Tmp_mdkc   from openquery( [122.147.160.20],
+        'select * from tbs_day_inventory where c_store_id<>''015901''
         and c_day_date=trunc(sysdate-1)');
 
         -- Step 1:商品表 分店表 分类表准备
@@ -40,7 +39,7 @@
         and a.character_type='N';
 
         -- Step 3:昨晚库存？ 有进价和售价的区分
-        select * from #Base_sp a 
-        left join #tmp_mdkc b on a.sfdbh=b.store_code and a.sspbh=b.item_code 
-
-        select * from #Tmp_mdkc
+        select left(a.sflbh,2) sdlbh,c.sflmc,sum(a.njj*isnull(b.nkcsl,0)) nkcje into #dlkc from #Base_sp a 
+        left join #tmp_mdkc b on a.sfdbh=b.sfdbh and a.sspbh=b.sspbh
+        left join  #Tmp_flb c on left(a.sflbh,2)=c.sflbh
+        where 1=1   

@@ -1,0 +1,89 @@
+select a.sDh,CONVERT(date,left(a.sdh,8),23) dDhrq,a.sFdbh,a.sSpbh,a.sGys,a.spsfs,a.nsl,'门店采购' flag into #receipt_raw from dbo.Purchase_DeliveryReceipt_Items a 
+where a.sdh>=CONVERT(varchar,GETDATE()-15,23) and a.spsfs<>'配送'
+union 
+select a.sdh,CONVERT(date,left(a.sdh,8),23) dDhrq,'088',a.sSpbh,'' sGys,'',a.nSl,'DC采购'  from dbo.Purchase_Receipt_Items a where a.sdh>=CONVERT(varchar,GETDATE()-15,23);
+-- 配送单
+  --Step 30.1: 要货表 drop table #Tmp_yhb T_mdyhjh 跟青云单是一模一样的  配送单要排除当天到的情况，因为取的库存是凌晨的
+  SELECT  a.sYhjhbh,a.sZy,a.sfdbh, ISNULL(a.dShsj,a.dYhrq) dYhrq,b.sspbh,b.nYhsl,b.nYpsl,b.nYcgsl,a.sbz into #Tmp_yhb 
+    FROM   Wjl.pos_2008.Pos_2008.T_mdyhjh a,
+	Wjl.pos_2008.Pos_2008.[T_yhjhmx]  b where a.sYhjhbh=b.sYhjhbh
+	and a.sYhjhbh>=CONVERT(varchar,GETDATE()-15,23) and a.sBz='dzixun要货'  and a.sYhjhbh<CONVERT(varchar,GETDATE()+1,23);
+
+	select * from #Tmp_yhb;
+ -- Step 2: 导实际采购单  drop table #cgdd;
+   	with x0 as (select a.scgddbh,a.sZy,ISNULL(a.dShsj,a.dDhrq) dDhsj,a.sgysbh,a.sDhd,b.sspbh,b.nJhsl, b.sjhmx,a.sddzt,
+	ROW_NUMBER()over(partition by a.sDhd,b.sspbh,convert(date,ISNULL(a.dShsj,a.dDhrq)) order by ISNULL(a.dShsj,a.dDhrq) desc) npm 
+	from Wjlck.pos_2008.Pos_2008.t_cgdd a,Wjlck.pos_2008.Pos_2008.t_cgddmx b
+	where a.scgddbh=b.scgddbh and a.szy like '%dzixun%'  and a.scgddbh>=CONVERT(varchar,GETDATE()-15,112)  and  a.sddzt<>'0' )
+	,x1 as (select a.*,c.value('.', 'varchar(50)') sJhFdmx  
+    from x0 a cross apply (select cast('<row>' + replace(substring(replace(a.sJhmx,'*',''),2,len(replace(a.sJhmx,'*',''))), '\','</row><row>')+ '</row>' as xml) as xmlcode) b
+   cross apply xmlcode.nodes('*') t1 (c) where 1=1 and a.sJhmx <> '' )
+	select  *,left(sJhfdmx,3) sJhfd,case when sJhFdmx like '%f%' then substring(sJhFdmx,4,CHARINDEX('f',sJhFdmx)-4) else substring(sJhfdmx,4,len(sJhfdmx)) end nSl into #cgdd from x1 ;
+   -- 删除当天有要货的门店商品 
+    
+   delete a  from #cgdd  a 
+  join #Tmp_yhb b on CONVERT(date,a.dDhsj)=CONVERT(date,b.dYhrq) and a.sSpbh=b.sspbh  and a.sJhfd=b.sfdbh ;
+
+    delete a  from #receipt_raw  a 
+  join #Tmp_yhb b on CONVERT(date,a.dDhrq)=CONVERT(date,b.dYhrq) and a.sSpbh=b.sspbh  and a.sFdbh=b.sfdbh ;
+
+  -- Step 30.3  单据对比 加单 删单  加量 减量
+  select ISNULL(a.dDhrq,b.dDhsj) drq,isnull(a.sFdbh,b.sJhfd) sfdbh,isnull(a.sSpbh,b.sspbh) sSpbh,
+   a.spsfs,a.flag,a.nsl,b.nSl nsjsl ,case when b.sJhfd is null then '采购删单'  when a.sFdbh is null then '采购加单'
+   when a.sDh is not null and b.sJhfd is not null and a.nsl<b.nsl then '采购加量'
+   when a.sDh is not null and b.sJhfd is not null and a.nsl>b.nsl then '采购减量' else '转单正常' end resu into #receipt_resu
+   from #receipt_raw a 
+  full join #cgdd b on a.dDhrq=CONVERT(date,b.dDhsj) and a.sSpbh=b.sspbh and a.sFdbh=b.sJhfd  
+  where 1=1 ;
+
+
+select * from dbo.Tmp_Mdxs_day  a
+
+-- 1 门店销售日销售- 近30天
+-- 2 门店每周销售，同比
+
+-- 1
+select a.* into #1 from dbo.Tmp_Mdxs_day  a
+where a.drq>=convert(date,GETDATE()-30);
+
+-- drop table #2
+select * into #2 from dbo.Tmp_Mdxs_day where drq>=dateadd(year,-1,convert(date,GETDATE()-30))
+and drq<dateadd(year,-1,convert(date,GETDATE()));
+
+-- drop table #tmp_r
+select a.drq, SUBSTRING( convert(varchar,a.drq,23) ,6,5) srq,convert(varchar,DATEPART(YEAR,a.drq))+'年销售金额' syear,AVG(a.nXsje) nxsje,AVG(a.nml) nml into #tmp_r  
+from  #1 a group by a.drq
+union
+select a.drq, SUBSTRING( convert(varchar,a.drq,23) ,6,5),convert(varchar,DATEPART(YEAR,a.drq))+'年销售金额' syear,AVG(a.nXsje) nxsje,AVG(a.nml) nml  from  #2 a 
+group by a.drq;
+
+
+DECLARE @sql_str VARCHAR(8000)
+DECLARE @sql_col VARCHAR(8000)
+SELECT @sql_col = ISNULL(@sql_col + ',',' ') + QUOTENAME([syear]) FROM  #tmp_r GROUP BY syear
+ -- 上面是将字段进行拼接.
+SET @sql_str = 'SELECT *  FROM (
+    SELECT   srq,syear,nxsje FROM #tmp_r) p PIVOT 
+    (SUM([nxsje]) FOR [syear] IN ( '+ @sql_col +'))   AS pvt 
+ORDER BY pvt.[srq]'
+select @sql_str
+EXEC (@sql_str) 
+
+-- 周数据
+-- drop table #1
+select a.* into #1 from dbo.Tmp_Mdxs_day  a where a.drq>=convert(date,GETDATE()-60);
+
+-- drop table #2
+select * into #2 from dbo.Tmp_Mdxs_day where drq>=dateadd(year,-1,convert(date,GETDATE()-60))
+and drq<dateadd(year,-1,convert(date,GETDATE()));
+
+-- drop table #11 
+select DATEPART(week,a.drq) nzs,convert(varchar,DATEPART(YEAR,a.drq))+'年销售金额' syear,
+sum(a.nXsje) nxsje,sum(a.nml) nml,min(a.drq) min_drq,max(a.drq) max_drq,COUNT(distinct a.drq) nts,count(distinct a.sFdbh) nfds into #11 from #1 a  group by DATEPART(week,a.drq),convert(varchar,DATEPART(YEAR,a.drq));
+
+-- 
+ select  DATEPART(week,a.drq) nzs,convert(varchar,DATEPART(YEAR,a.drq))+'年销售金额' syear,
+sum(a.nXsje) nxsje,sum(a.nml) nml,min(a.drq) min_drq,max(a.drq) max_drq,COUNT(distinct a.drq) nts,count(distinct a.sFdbh) nfds from #2 a 
+ left join #11 b on  a.drq>=DATEADD(YEAR,-1,b.min_drq) and a.drq<=DATEADD(YEAR,-1,b.max_drq)
+ where 1=1  group by DATEPART(week,a.drq),convert(varchar,DATEPART(YEAR,a.drq));
+
