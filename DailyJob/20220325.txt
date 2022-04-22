@@ -419,3 +419,239 @@ left join #Tmp_fdb c on a.sfdbh=c.sfdbh
 left join #Tmp_flb d on a.splbh=d.sflbh
 left join #Tmp_kcb e on a.sfdbh=e.store_code and a.sspbh=e.item_code
 where a.sfdbh='018425' and a.stop_into<>'N'  order by splbh 
+
+
+
+----------0328
+1、排除季节性品类 SeasonalSp_Set       
+2、 排除 正促销、一个月内有促销商品；tmp_Promotion
+3、t_sdmdtable slx in('正常品','低周转','滞销品')
+4、日均nday<0.05
+5、范围常温商品：goods WHERE isnormal='常温商品'
+6、排除新品
+DROP TABLE #1
+---200服务器,dappsource库 
+select a.sfdbh,a.sspbh,a.sspmc,a.njj,a.nkc,a.ncgbzs,b.nrjxl,b.njyxx,case when (b.nrjxl*15+b.njyxx)<5 then 5 else (b.nrjxl*15+b.njyxx) end as blsl,
+d.slx into #1 from [122.147.160.32].DApplicationBI.dbo.tmp_mdspzzyy a,sys_deliveryset b,p_shop_item_output c,t_sdmdtable d,goods e
+where a.sfdbh=b.sfdbh AND b.sfdbh=c.dept_code AND c.dept_code=d.sfdbh and a.sfdbh='018425' and a.drq='2022-03-17' AND a.sspbh=b.sspbh 
+AND b.sspbh=c.item_code AND c.item_code=d.sspbh AND d.sspbh=e.code AND c.c_introduce_date<GETDATE()-60
+AND d.slx in('正常品','低周转','滞销品') AND d.nday<0.05 AND e.isnormal='常温商品' 
+AND left(e.sort,4) not in ('2106','2208','3102','3903') AND left(e.sort,6) not in ('210506','230402','250201','370125')
+AND e.sort not in ('23060302','33021201','33021202','33021204','33021205','33021206','33021207','33021208') 
+AND a.sspbh not in (select distinct sspbh FROM tmp_Promotion WHERE sfdbh='018425' AND edate>=GETDATE()-1 AND bdate<GETDATE()+30 AND edate>=bdate)
+
+select t1.*,可退量*t1.njj 可退金额,t1.可退包装数*t1.ncgbzs as 可退凑整量,t1.可退包装数*t1.ncgbzs*t1.njj 可退金额 from
+(select #1.*,(case when floor((nkc-blsl))<=0 then 0 else floor((nkc-blsl)) end) 可退量,
+(case when floor((nkc-blsl)/ncgbzs)<1 then 0 else floor((nkc-blsl)/ncgbzs) end) 可退包装数 from #1 )t1
+ order by 可退量
+
+
+
+ ----------------2022-03-29---
+ 1、myj
+ 
+	update Input_Xp_Sp_Fd set ngg=convert(money,REPLACE(sgg,'g',''))  where    sflbh='339901'
+	update Input_Xp_Sp_All_Fd set ngg=convert(money,REPLACE(sgg,'g',''))  where    sflbh='339901' 
+
+  select '6955640363555' sgjtm,'青果' sgn into #1 union  select '6958214686180','青果' union 
+   select '6925909987099','烟果' union  select '6958214623086','青果' union  
+   select '6925909980526','青果' union  select '6931630386131','青果' union  
+   select '6931630385738','青果' union  select '6955640354997','青果' union  
+   select '6958214631159','烟果' union  select '6955640354874','青果' union  
+   select '6936378310172','青果' union  select '6958214616880','青果' union  
+   select '6925909980595','烟果' union  select '6936378310165','青果' union  
+   select '6925909961341','烟果' union  select '6973717960063','青果' union  
+   select '6931630386391','青果' union  select '6933125699993','青果' union  
+   select '6931273208128','青果' union  select '6973717960032','青果' union  
+   select '6931273210718','烟果' union  select '6931273213245','青果' union  
+   select '6973717960025','青果' union  select '6931273213023','烟果' union  
+   select '6931273213122','烟果' union  
+update a set a.sGn=b.sgn from Input_Xp_Sp_All_Fd a 
+	join #1 b on a.sGjtm=b.sgjtm
+	where 1=1 
+
+2、嘉荣
+  2.1 陈列数据
+      SELECT  a.sfdbh 分店编号,d.sfdmc 分店名称, a.shjbh 货架编号,c.shjmc 货架名称,b.sspbh 商品编号,e.name 商品名称,
+    b.nm 面,b.nc 层,b.ns 深,b.nmins 最小深度,b.daddtime 录入时间,b.sadduser 录入ID,b.dupdatetime 修改时间,b.supdateuser 修改ID
+    FROM DAppResult.dbo.ShelfCollection_Zd a(NOLOCK),DAppResult.dbo.ShelfCollection_Mx b(NOLOCK),Shelf_Info c(NOLOCK),
+    DAppResult.dbo.tmp_fdb d(NOLOCK), DAppResult.dbo.goods_all e(NOLOCK)
+    WHERE a.sfdbh=b.sfdbh AND a.shjbh=b.shjbh AND a.sfdbh=c.sfdbh AND a.shjbh=c.shjbh
+    AND a.sfdbh=d.sfdbh AND b.sspbh=e.code #Params#
+    #OB#ORDER BY a.sfdbh,a.shjbh,b.nxh#OE#
+
+    select * from DAppResult.dbo.ShelfCollection_Mx a where a.
+
+
+SELECT  a.sfdbh 分店编号,d.sfdmc 分店名称, a.shjbh 货架编号,c.shjmc 货架名称,b.sspbh 商品编号,e.name 商品名称,
+b.nm 面,b.nc 层,b.ns 深,b.nmins 最小深度,b.daddtime 录入时间,b.sadduser 录入ID,b.dupdatetime 修改时间,b.supdateuser 修改ID
+ FROM DAppResult.dbo.ShelfCollection_Zd a(NOLOCK),DAppResult.dbo.ShelfCollection_Mx b(NOLOCK),Shelf_Info c(NOLOCK),
+ DAppResult.dbo.tmp_fdb d(NOLOCK), DAppResult.dbo.goods_all e(NOLOCK)
+WHERE a.sfdbh=b.sfdbh AND a.shjbh=b.shjbh AND a.sfdbh=c.sfdbh AND a.shjbh=c.shjbh
+AND a.sfdbh=d.sfdbh AND b.sspbh=e.code #Params#
+#OB#ORDER BY a.sfdbh,a.shjbh,b.nxh#OE#
+
+select * from DAppResult.dbo.ShelfCollection_Mx a where a.
+
+
+/*
+货架陈列 和定额横向 对比
+
+*/
+--Step 0 :Data Prepare
+select a.sFdbh,a.sHjbh,c.sHjmc,b.sSpbh,b.nM,b.nC,b.nS,b.nMinS into #1 from DAppResult.dbo.ShelfCollection_Zd  a
+left join DAppResult.dbo.ShelfCollection_Mx b on a.sFdbh=b.sFdbh and a.sHjbh=b.sHjbh
+left join DAppResult.dbo.Shelf_Info c on a.sFdbh=c.sFdbh and a.sHjbh=c.sHjbh
+where 1=1 and a.sFdbh in ('018320','012006','018425') ;
+
+
+-- Step 1:De
+select * into #2  from [122.147.10.200].dappsource.dbo.sys_deliveryset where sFdbh in ('018320','012006','018425') ;
+
+-- Stwp 2 :contract drop table #5
+select a.sFdbh,a.sHjbh,a.sHjmc,a.sSpbh,a.nM,a.nC,a.nS,isnull(a.nM*a.nC*a.nMinS,0) nhjzdcl,
+isnull(a.nM*a.nC*a.nS,0) nmhjs,
+b.spsfs,b.FlagLevel,b.nRjxl,b.nSx,b.nXx,b.nKzts,b.nYlxs,b.zcts,a.nMinS,
+case when isnull(b.nZdcl,0)>=isnull(b.nZdcl_Offset,0) then ISNULL(b.nZdcl,0) else ISNULL(b.nZdcl_Offset,0) end nzdcl_cal
+,b.nMws,b.nPls,4 nzdcl_raw into #5 from  #1 a 
+left join #2  b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh
+where 1=1;
+
+-- Step 3:mdsp
+select * into #tmp_mdsp
+ from [122.147.10.200].Dappsource.dbo.p_shop_item_output where dept_code in  ('018320','012006','012007','018389','018425');
+
+ select * into #t_sdmdtable
+ from [122.147.10.200].Dappsource.dbo.t_sdmdtable where sfdbh in  ('018320','012006','012007','018389','018425');
+
+ select * into #goods
+ from [122.147.10.200].Dappsource.dbo.goods  ;
+
+ -- 自动补货商品明细
+select a.sfdbh,b.sflbh into #zdbhfl
+from [122.147.10.200].dappsource.dbo.sys_deliverysort a,
+[122.147.160.32].DApplicationBI.dbo.tmp_spflb b where  b.sflbh like a.sflbh+'%' and LEN(b.sflbh)=8
+or b.sflbh in ('1309','2103','2104');
+
+--
+
+-- gys
+select * into #tmp_gys from [122.147.10.200].dappsource.dbo.vendor
+ 
+-- 实时库存
+select * into #kc from [122.147.160.32].DApplicationBI.dbo.V_D_PRICE_AND_STOCK
+where store_code in ('012006','018320');
+
+-- drop table #6
+select a.sFdbh,b.sFDMC,a.sHjbh,a.sHjmc,a.sSpbh,c.name sspmc,c.sort,d.shift_price njj,d.retail_price nsj,a.spsfs,a.FlagLevel,c.isnormal,c.alcqty,
+d.min_purchase_qty,a.nM,a.nC,a.nS,a.nMinS,a.nhjzdcl,a.nmhjs,
+d.SHOP_SUPPLIER_CODE sgys,f.name sgysmc,case when a.spsfs = '配送' then 2 else   f.days end days,f.ValidDay ,case when c.isnormal='冷藏商品' then  CONVERT(money,'') else  a.nRjxl end nRjxsl,a.nSx,a.nXx,a.nzdcl_cal
+,a.nMws,a.nPls,a.nzdcl_raw,case when e.sFdbh is not null  then '1' else '0' end  szdbh,c.munit sdw
+,g.CURR_STOCK ndqkc
+into #6  from #5 a 
+left join DAppStore.dbo.Tmp_FDB b on a.sFdbh=b.sFDBH
+left join #goods c on a.sSpbh=c.code
+left join #tmp_mdsp d on a.sFdbh=d.dept_code and a.sSpbh=d.item_code
+left join #zdbhfl e on a.sFdbh=e.sFdbh and c.sort=e.sflbh
+left join #tmp_gys f on d.SHOP_SUPPLIER_CODE=f.code
+left join #kc g on a.sFDBH=g.STORE_CODE and a.sspbh=g.ITEM_CODE 
+where 1=1 and a.sSpbh is not null order by a.sFdbh,c.sort,a.sSpbh ;
+
+update a  set  a.szdbh='0' from #6  a,[122.147.10.200].DAppSource.dbo.Sys_DeliveryGysEx b 
+where a.sgys=b.sgys ;
+
+update a  set  a.szdbh='0' from #6 a,[122.147.10.200].DAppSource.dbo.Sys_DeliverySortEx b
+where a.sort like b.sflbh+'%' and a.sfdbh=b.sfdbh ;
+
+
+update a  set  a.szdbh='0' from #6  a,[122.147.10.200].DAppSource.dbo.Sys_DeliverySpEx b
+where a.sspbh=b.sspbh and b.begindate<GETDATE() and b.enddate>GETDATE() and nflag=1 ;
+
+
+
+select a.sFdbh,a.sFDMC,a.sSpbh,a.sspmc,a.njj,a.sdw,a.sort,a.spsfs,a.FlagLevel,a.isnormal,a.alcqty,a.min_purchase_qty,
+sum(a.nM) nm ,max(a.nC) nc,max(a.nS) ns,max(a.nMinS) nmins,
+sum(nhjzdcl) nhjzdcl,sum(a.nmhjs) nmhjs,a.sgys,a.sgysmc,a.days,a.ValidDay,a.nRjxsl,a.nSx,a.nXx,
+case when a.nzdcl_cal>0 then a.nzdcl_cal else 4 end nzdcl_cal,a.nMws,a.nPls,
+case when a.szdbh='1' then '自动补货' else '非自动补货' end szdbh,a.ndqkc  into #7 from #6 a
+ where 1=1 
+and a.spsfs is not null and a.sFdbh='012006'
+group by 
+ a.sFdbh,a.sFDMC,a.sSpbh,a.sspmc,a.sort,a.spsfs,a.FlagLevel,a.isnormal,a.alcqty,a.min_purchase_qty,
+ a.sgys,a.sgysmc,a.days,a.ValidDay,a.nRjxsl,a.nSx,a.nXx,
+case when a.nzdcl_cal>0 then a.nzdcl_cal else 4 end  ,a.nMws,a.nPls,a.szdbh,a.njj,a.sdw,a.ndqkc
+order by  sfdbh,sort,sSpbh;
+
+select * from #6 where szdbh='1' and sfdbh='012006' and spsfs is   null 
+
+
+select a.*,a.nhjzdcl-a.nzdcl_cal,a.nXx+a.nhjzdcl-a.nzdcl_cal nxx_new,
+(a.nXx+a.nhjzdcl-a.nzdcl_cal)*a.njj,
+case when a.ndqkc>=a.nXx+a.nhjzdcl-a.nzdcl_cal then 0 
+when a.nhjzdcl<=a.nzdcl_cal then 0 
+when a.nhjzdcl> a.nzdcl_cal and a.ndqkc<a.nXx+a.nhjzdcl-a.nzdcl_cal
+then floor((a.nXx+a.nhjzdcl-a.nzdcl_cal-a.ndqkc)*1.0/a.min_purchase_qty)*a.min_purchase_qty end
+   from #7  a
+接下来
+1、面位数——货架
+   深度
+   A类品 面位数为1 的有问题，且深度不能过大—— 散装货品的 深度 定义，比如米缸和袋装米两种情况
+
+1、确定货架的定义
+2、再复核商品的货架：好的商品面位给少了，面位数过大
+3、定额变化：为什么上下限偶发性的分开  
+4、散装包装数的问题
+
+下限-最小陈列+货架陈列=新下限
+新下限+（上限-下限）=新上限
+
+
+
+  
+--------- 2022-03-30--------------
+1、嘉荣的几点事情
+  1.1 冷冻冷藏的日均销量表  发现200 的sys_deliveryset 表的日均值和自动补货核查里面不一样
+  1.2 模型：选一个品类添加 维联的 重点维度
+  1.3 定额计算使用的最低陈列和货架计算出的最低陈列不一致
+
+2、大类标准天数
+create table Tmp_sort_standard(
+drq date not null,
+sFlbh varchar(20) not null,
+sFlmc varchar(20) not null,
+nkcje money,
+nRjxscb money,
+nPlzzts int,
+primary key(drq,sFlbh))
+
+
+--------2022-03-31
+1、货架数核查单品  23020250  21020266  21010503
+
+2、 库存增加总金额 -23440 元
+    纯增加金额 4240元
+
+
+-------2022-04-01-----------
+1、90天处理跟踪
+
+----2022-04-02-------------
+1、JR满货架数 对比  见满货架是否能当仓库
+
+
+2022-04-08
+select '21010101' sflbh ,'5' bghs into #1 union  select '21010102','5' union  select '21010105','2' union  select '21010106','1' union  select '21010107','5' union  select '21010108','2' union  select '21010110','2' union  select '21020101','40' union  select '21020102','3' union  select '21020103','2' union  select '21020104','3' union  select '21020105','6' union  select '21020106','11' union  select '21020107','5' union  select '21020108','5' union  select '21020109','1' union  select '21020110','2' union  select '21020111','2' union  select '21030101','8' union  select '21030102','16' union  select '21030103','20' union  select '21030104','10' union  select '21030105','9' union  select '21030106','7' union  select '21030107','1' union  select '21030108','15' union  select '21030201','11' union  select '21030202','1' union  select '21030204','5' union  select '21030301','5' union  select '21030302','2' union  select '21030303','16' union  select '21030401','4' union  select '21030403','6' union  select '21030407','10' union  select '21030501','2' union  select '21030502','2' union  select '21030503','10' union  select '21030504','10' union  select '21030505','10' union  select '21030601','3' union  select '21030603','4' union  select '21040101','6' union  select '21040103','2' union  select '21040104','9' union  select '21040105','2' union  select '21040107','1' union  select '21040110','2' union  select '21040201','8' union  select '21040203','2' union  select '21040301','3' union  select '21040303','6' union  select '21040306','3' union  select '21040308','6' union  select '21040310','10' union  select '21040312','3' union  select '21040313','3' union  select '21040401','15' union  select '21040403','1' union  select '21040404','6' union  select '21040405','2' union  select '21040406','2' union  select '21040501','2' union  select '21040502','1' union  select '21040503','2' union  select '21040504','2' union  select '21050101','4' union  select '21050103','2' union  select '21050104','2' union  select '21050105','3' union  select '21050201','3' union  select '21050202','2' union  select '21050205','10' union  select '21050206','3' union  select '21050207','7' union  select '21050208','2' union  select '21050209','12' union  select '21050301','3' union  select '21050303','12' union  select '21050304','9' union  select '21050305','7' union  select '21050401','6' union  select '21050402','17' union  select '21050403','1' union  select '21050404','2' union  select '21050405','2' union  select '21050407','2' union  select '21050408','6' union  select '21050409','1' union  select '21050410','2' union  select '21050412','3' union  select '21050501','11' union  select '21050502','2' union  select '21050503','3' union  select '21050504','1' union  select '21050505','1' union  select '21050507','2' union  select '21050509','1' union  select '21050510','2' union  select '21050511','2' union  select '21050512','5' union  select '21050513','2' union  select '21050515','2' union  select '21050601','29' union  select '21050602','34' union  select '21050603','8' union  select '21050604','6' union  select '21050605','2' union  select '22010101','81' union  select '22010102','22' union  select '22010108','2' union  select '22010112','8' union  select '22010113','4' union  select '22020101','7' union  select '22020102','8' union  select '22020103','7' union  select '22020104','12' union  select '22020105','5' union  select '22020106','15' union  select '22020107','9' union  select '22020109','5' union  select '22030101','13' union  select '22030102','3' union  select '22030103','1' union  select '22030105','2' union  select '22030106','1' union  select '22030108','3' union  select '22030109','8' union  select '22030110','4' union  select '22030201','2' union  select '22030202','4' union  select '22030203','4' union  select '22030204','1' union  select '22030207','3' union  select '22030208','10' union  select '22040101','11' union  select '22040102','4' union  select '22040103','1' union  select '22040104','2' union  select '22040105','2' union  select '22040106','4' union  select '22040107','2' union  select '22040108','2' union  select '22040109','3' union  select '22040110','2' union  select '22040201','8' union  select '22040202','9' union  select '22040203','6' union  select '22040204','1' union  select '22040205','5' union  select '22040207','2' union  select '22040209','7' union  select '22040210','20' union  select '22050101','12' union  select '22050102','3' union  select '22050103','8' union  select '22050104','1' union  select '22050106','6' union  select '22050107','4' union  select '22050108','3' union  select '22050109','1' union  select '22050111','1' union  select '22050112','1' union  select '22050113','3' union  select '22050115','4' union  select '22050116','1' union  select '22050117','2' union  select '22050119','2' union  select '22050126','1' union  select '22050127','2' union  select '22050130','1' union  select '22050131','2' union  select '22050136','2' union  select '22050137','2' union  select '22050138','5' union  select '22050140','2' union  select '22050146','1' union  select '22050149','11' union  select '22050150','2' union  select '22050151','7' union  select '22050201','2' union  select '22050202','2' union  select '22050203','6' union  select '22050204','2' union  select '22050208','2' union  select '22050209','11' union  select '22050211','14' union  select '22050212','4' union  select '22050213','3' union  select '22050215','17' union  select '22050216','12' union  select '22050217','1' union  select '22050219','4' union  select '22060101','4' union  select '22060102','1' union  select '22060103','1' union  select '22060104','1' union  select '22060106','5' union  select '22060107','2' union  select '22060108','3' union  select '22060109','2' union  select '22060201','10' union  select '22060301','4' union  select '22060302','4' union  select '22070101','12' union  select '22070102','5' union  select '22070103','2' union  select '22070104','2' union  select '22070201','9' union  select '22070202','11' union  select '22070203','2' union  select '22070204','2' union  select '22070205','3' union  select '22070206','1' union  select '22070207','3' union  select '22070208','1' union  select '22070209','1' union  select '22070210','1' union  select '22070212','3' union  select '22070213','5' union  select '22070214','3' union  select '22070215','1' union  select '22070216','2' union  select '22070217','1' union  select '22070218','2' union  select '22080101','23' union  select '22080102','16' union  select '22080103','14' union  select '22080105','44' union  select '22080110','4' union  select '22080111','4' union  select '22090102','10' union  select '22090202','8' union  select '22090203','2' union  select '22090204','2' union  select '22100101','4' union  select '22100102','9' union  select '22100103','1' union  select '22100104','1' union  select '22100106','3' union  select '22100108','1' union  select '22100109','1' union  select '23010101','12' union  select '23010103','2' union  select '23010104','23' union  select '23010105','48' union  select '23010106','1' union  select '23010107','9' union  select '23010108','11' union  select '23010109','3' union  select '23010110','2' union  select '23010111','2' union  select '23010112','7' union  select '23010113','11' union  select '23010114','12' union  select '23010116','6' union  select '23010117','6' union  select '23010118','25' union  select '23010119','5' union  select '23010120','10' union  select '23010121','2' union  select '23010201','7' union  select '23010202','20' union  select '23010303','19' union  select '23010401','12' union  select '23010402','4' union  select '23010403','3' union  select '23010404','7' union  select '23010406','12' union  select '23010408','2' union  select '23010409','2' union  select '23010410','17' union  select '23010411','12' union  select '23010412','5' union  select '23010413','10' union  select '23020101','4' union  select '23020102','3' union  select '23020103','13' union  select '23020104','28' union  select '23020105','3' union  select '23020106','4' union  select '23020107','3' union  select '23020108','51' union  select '23020110','4' union  select '23020111','48' union  select '23020112','6' union  select '23020201','14' union  select '23020202','13' union  select '23020203','4' union  select '23020301','9' union  select '23020302','26' union  select '23020401','5' union  select '23020402','3' union  select '23020403','5' union  select '23020501','1' union  select '23020502','3' union  select '23020511','3' union  select '23020602','3' union  select '23020603','5' union  select '23020605','3' union  select '23020606','3' union  select '23020701','3' union  select '23020806','5' union  select '23020807','1' union  select '23020813','3' union  select '23020901','5' union  select '23020903','5' union  select '23020904','1' union  select '23020909','1' union  select '23020910','1' union  select '23020916','5' union  select '23020918','4' union  select '23020919','3' union  select '23020920','3' union  select '23020921','1' union  select '23020923','1' union  select '23020925','8' union  select '23020926','5' union  select '23020928','5' union  select '23020929','3' union  select '23020931','4' union  select '23040101','39' union  select '23040102','56' union  select '23040103','23' union  select '23040104','15' union  select '23040105','13' union  select '23040106','63' union  select '23040107','18' union  select '23040108','11' union  select '23040109','4' union  select '23040111','5' union  select '23040112','17' union  select '23040201','24' union  select '23040202','4' union  select '23040203','15' union  select '23040204','4' union  select '23040205','9' union  select '23040301','17' union  select '23040302','14' union  select '23040303','13' union  select '23040304','11' union  select '23040306','7' union  select '23040307','38' union  select '23040308','37' union  select '23040309','32' union  select '23040310','22' union  select '23040311','14' union  select '23040312','14' union  select '23050101','23' union  select '23050102','5' union  select '23050103','3' union  select '23050105','2' union  select '23050201','20' union  select '23050202','8' union  select '23050203','3' union  select '23050204','12' union  select '23050205','6' union  select '23050206','3' union  select '23050207','5' union  select '23050208','22' union  select '23050209','6' union  select '23050210','6' union  select '23050211','2' union  select '23050301','12' union  select '23050302','19' union  select '23050303','3' union  select '23050304','2' union  select '23050401','5' union  select '23050402','6' union  select '23050403','19' union  select '23050404','12' union  select '23050405','46' union  select '23050406','6' union  select '23050407','5' union  select '23050408','11' union  select '23050409','6' union  select '23050503','5' union  select '23050506','3' union  select '23050601','14' union  select '23050602','9' union  select '23050603','32' union  select '23050604','6' union  select '23060101','5' union  select '23060201','5' union  select '23060301','5' union  select '23060302','5' union  select '23070102','9' union  select '23070103','11' union  select '23080101','1' union  select '23080103','10' union  select '23080105','3' union  select '23080202','6' union  select '23080203','1' union  select '23080204','1' union  select '23080205','4' union  select '23080206','2' union  select '23080209','1' union  select '23080302','8' union  select '23080303','5' union  select '23080304','10' union  select '23080305','15' union  select '23080306','10' union  select '23080307','11' union  select '23080401','4' union  select '23080402','2' union  select '23080403','28' union  select '23080404','8' union  select '23080405','2' union  select '23080406','2' union  select '23080408','2' union  select '23080409','1' union  select '23080411','1' union  select '23080412','2' union  select '23080501','12' union  select '23080502','4' union  select '23080503','4' union  select '23090101','7' union  select '23090102','6' union  select '23090103','4' union  select '23090104','4' union  select '23090201','5' union  select '23090202','4' union  select '23090204','10' union  select '23090205','8' union  select '23090206','7' union  select '23100201','3' union  select '23100202','1' union  select '23100302','2' union  select '23100304','2' union  select '23100305','3' union  select '23100310','12' union  select '23100311','2' union  select '23100312','3' union  select '24010101','20' union  select '24010102','9' union  select '24010103','2' union  select '24010104','5' union  select '24010105','1' union  select '24010107','12' union  select '24010108','6' union  select '24010109','2' union  select '24010110','2' union  select '24010111','1' union  select '24010112','1' union  select '24020101','1' union  select '24020102','7' union  select '24020104','1' union  select '24020106','1' union  select '24020107','1' union  select '24020108','20' union  select '24020109','2' union  select '24020110','2' union  select '24020112','1' union  select '24020113','1' union  select '24020201','3' union  select '24020202','7' union  select '24020203','2' union  select '24020204','2' union  select '24020206','1' union  select '24020207','1' union  select '24020208','1' union  select '24020212','1' union  select '24020213','1' union  select '24020215','1' union  select '24020216','1' union  select '24020218','1' union  select '24020219','2' union  select '24020301','1' union  select '24020302','1' union  select '24020303','2' union  select '24020309','1' union  select '24020310','4' union  select '24020313','8' union  select '24020318','1' union  select '24020320','1' union  select '24020323','1' union  select '24020327','1' union  select '24020328','3' union  select '24020330','1' union  select '24020333','3' union  select '24020335','2' union  select '24020337','1' union  select '24020401','2' union  select '24020403','3' union  select '24020404','3' union  select '24020405','4' union  select '24020408','1' union  select '24020409','1' union  select '24020410','1' union  select '24020411','1' union  select '24020414','1' union  select '24020415','1' union  select '24020416','1' union  select '24020417','1' union  select '24020418','1' union  select '24020419','1' union  select '24020420','2' union  select '24020422','3' union  select '24020427','1' union  select '24020428','1' union  select '24020430','2' union  select '24020431','8' union  select '24020432','1' union  select '24020434','1' union  select '24020435','5' union  select '24020436','9' union  select '24020437','6' union  select '24020438','1' union  select '24020439','2' union  select '24020440','3' union  select '24020441','1' union  select '24030101','2' union  select '24030103','5' union  select '24030104','5' union  select '24030105','3' union  select '24030106','2' union  select '24030107','2' union  select '24030109','1' union  select '24030110','3' union  select '24030111','2' union  select '24030112','2' union  select '24030113','2' union  select '24030114','2' union  select '24030115','2' union  select '24030117','2' union  select '24030119','5' union  select '24030122','2' union  select '24030125','2' union  select '24030126','1' union  select '24030127','2' union  select '24030128','2' union  select '24030130','3' union  select '24030131','1' union  select '24030132','3' union  select '24030133','2' union  select '24030134','1' union  select '24030137','2' union  select '24030144','2' union  select '24030204','1' union  select '24030206','1' union  select '24030207','2' union  select '24030211','1' union  select '24030212','9' union  select '24030213','1' union  select '24030214','2' union  select '24030216','2' union  select '24030217','2' union  select '24030219','2' union  select '24030220','3' union  select '24030221','2' union  select '24030223','1' union  select '24030225','2' union  select '24030227','1' union  select '24030229','4' union  select '24030301','14' union  select '24030302','10' union  select '24030401','2' union  select '24030402','2' union  select '24030403','1' union  select '24030407','2' union  select '24030408','2' union  select '24030501','1' union  select '24030502','2' union  select '24030506','3' union  select '24030510','2' union  select '24030601','2' union  select '24030701','3' union  select '24030702','3' union  select '24030708','3' union  select '24030710','3' union  select '24030711','2' union  select '24030801','2' union  select '24030804','2' union  select '24030805','2' union  select '24030806','2' union  select '24030811','2' union  select '24030901','2' union  select '24030903','2' union  select '24030910','2' union  select '24030911','7' union  select '24030912','3' union  select '24030918','2' union  select '24030921','2' union  select '24030925','1' union  select '24030926','1' union  select '24030927','2' union  select '24030928','2' union  select '24030929','1' union  select '24030931','1' union  select '24030932','2' union  select '24031001','1' union  select '24031002','1' union  select '24031003','4' union  select '24031004','2' union  select '24031005','3' union  select '24031101','2' union  select '24031102','2' union  select '24040101','4' union  select '24040102','2' union  select '24040103','4' union  
+select '24040104','3' union  select '24040105','2' union  select '24040106','2' union  select '24040108','1' union  select '24040111','1' union  select '24040112','6' union  select '24040113','4' union  select '24040114','3' union  select '24040115','9' union  select '24040202','4' union  select '24040203','1' union  select '24040207','1' union  select '24040209','2' union  select '24040212','1' union  select '24040213','2' union  select '24040219','1' union  select '24040221','2' union  select '24040222','3' union  select '24040223','3' union  select '24040224','1' union  select '24040225','1' union  select '24040228','1' union  select '24040229','2' union  select '24040301','7' union  select '24040302','10' union  select '24040303','5' union  select '24040304','7' union  select '24040305','4' union  select '24040306','2' union  select '24040307','2' union  select '24040308','3' union  select '24040309','1' union  select '24040310','3' union  select '24040311','11' union  select '24040312','12' union  select '24040313','5' union  select '24040314','3' union  select '24040315','2' union  select '24040316','3' union  select '24040318','4' union  select '24040319','10' union  select '24040320','4' union  select '24040401','13' union  select '24040402','14' union  select '24040404','29' union  select '24040405','34' union  select '24040406','12' union  select '24040408','2' union  select '24040412','3' union  select '24040413','7' union  select '24050101','2' union  select '24050102','3' union  select '24050103','4' union  select '24050104','2' union  select '24050105','5' union  select '24050201','2' union  select '24050202','2' union  select '24050203','12' union  select '24050204','4' union  select '24050205','5' union  select '24050206','1' union  select '24050207','4' union  select '24050208','6' union  select '24050209','1' union  select '25010102','1' union  select '25010201','1' union  select '25020102','6' union  select '25020104','1' union  select '25020201','1' union  select '25020202','2' union  select '25020301','1' union  select '25020304','1' union  select '25020306','1' union  select '25020307','2' union  select '31010101','53' union  select '31010102','17' union  select '31010103','1' union  select '31010104','4' union  select '31010201','31' union  select '31010202','9' union  select '31010204','6' union  select '31010205','7' union  select '31010206','1' union  select '31010207','5' union  select '31010301','10' union  select '31010307','1' union  select '31010308','1' union  select '31010311','10' union  select '31020119','4' union  select '31020122','1' union  select '31020123','4' union  select '31020125','1' union  select '31020130','1' union  select '31020131','1' union  select '31020134','2' union  select '31020204','1' union  select '31020205','6' union  select '31020234','2' union  select '31020301','2' union  select '31020302','5' union  select '31020303','2' union  select '31020306','1' union  select '31020307','3' union  select '31020309','3' union  select '31020310','1' union  select '31020402','1' union  select '31020404','3' union  select '31020405','1' union  select '31020415','1' union  select '31020422','1' union  select '31020501','15' union  select '31020504','1' union  select '31020505','1' union  select '31020506','2' union  select '31020508','4' union  select '31020509','1' union  select '31020511','3' union  select '31020601','1' union  select '31020602','3' union  select '31020605','2' union  select '31020702','1' union  select '31020703','1' union  select '31020901','5' union  select '31020902','1' union  select '31021001','1' union  select '31021004','1' union  select '31021007','4' union  select '31021009','4' union  select '31030101','5' union  select '31030103','2' union  select '31030201','32' union  select '31030202','28' union  select '31030203','5' union  select '31030204','10' union  select '31030206','11' union  select '31030207','9' union  select '31030208','2' union  select '31030301','2' union  select '31030403','3' union  select '31030404','3' union  select '31030412','6' union  select '31030413','2' union  select '31030501','17' union  select '31040101','55' union  select '31040102','5' union  select '31040103','3' union  select '31040201','4' union  select '31040301','6' union  select '31040303','10' union  select '31040304','3' union  select '31040306','1' union  select '31040401','4' union  select '31040402','5' union  select '31050101','23' union  select '31050102','4' union  select '31050105','3' union  select '31050201','7' union  select '31050203','1' union  select '31050204','2' union  select '31050205','2' union  select '31050208','2' union  select '31050209','2' union  select '31050301','5' union  select '31050302','2' union  select '31050303','2' union  select '31050304','3' union  select '31060101','2' union  select '31060102','26' union  select '31060103','14' union  select '31060107','6' union  select '31060201','6' union  select '31060202','6' union  select '31060203','2' union  select '31060301','2' union  select '31060302','1' union  select '31060303','13' union  select '31060305','2' union  select '31060306','2' union  select '31060307','2' union  select '31060401','5' union  select '31060402','2' union  select '31060403','2' union  select '32010101','1' union  select '32010102','4' union  select '32010103','11' union  select '32010105','9' union  select '32010202','3' union  select '32010204','4' union  select '32010205','1' union  select '32010208','1' union  select '32010212','1' union  select '32010215','4' union  select '32010301','4' union  select '32010302','5' union  select '32010303','4' union  select '32010801','3' union  select '32010802','3' union  select '32010815','5' union  select '33010101','1' union  select '33010102','3' union  select '33010103','1' union  select '33010104','10' union  select '33010105','4' union  select '33010108','3' union  select '33010201','1' union  select '33010202','6' union  select '33010203','2' union  select '33010301','1' union  select '33010302','4' union  select '33010305','7' union  select '33010401','3' union  select '33010405','4' union  select '33010406','22' union  select '33010407','5' union  select '33010408','6' union  select '33010501','4' union  select '33020101','2' union  select '33020102','1' union  select '33020103','1' union  select '33020201','2' union  select '33020203','2' union  select '33020303','1' union  select '33020304','2' union  select '33020503','1' union  select '33020606','3' union  select '33020701','2' union  select '33020704','2' union  select '33020709','6' union  select '33020802','2' union  select '33020806','5' union  select '33020807','2' union  select '33020901','2' union  select '33021006','6' union  select '33021101','23' union  select '33021102','2' union  select '33021201','2' union  select '33021202','1' union  select '33021204','2' union  select '33021205','2' union  select '33021207','1' union  select '33021208','2' union  select '34020101','16' union  select '34020102','7' union  select '34020103','5' union  select '34020110','12' union  select '36010102','3' union  select '36010104','3' union  select '36010202','4' union  select '36010302','3' union  select '36010303','5' union  select '36010702','4' union  select '37010204','3' union  select '37010403','3' union  select '37010601','1' union  select '37010803','1' union  select '37010901','3' union  select '37010902','3' union  select '37010903','3' union  select '37011002','1' union  select '37011004','5' union  select '37011005','3' union  select '37011006','3' union  select '37011113','1' union  select '37011121','4' union  select '37011171','4' union  select '37011201','5' union  select '37011202','14' union  select '37011203','3' union  select '37011205','3' union  select '37011302','3' union  select '37011401','1' union  select '37011402','3' union  select '37011403','3' union  select '37011404','1' union  select '37011406','3' union  select '37011501','3' union  select '37011502','3' union  select '37011504','3' union  select '37011506','3' union  select '37011701','8' union  select '37011702','3' union  select '37011703','3' union  select '37011705','3' union  select '37011708','8' union  select '37011709','4' union  select '37011710','3' union  select '37011712','4' union  select '37011801','1' union  select '37011802','3' union  select '37011803','3' union  select '37012001','1' union  select '37012002','1' union  select '37012003','3' union  select '37012006','5' union  select '37012007','3' union  select '37012101','3' union  select '37012102','4' union  select '37012104','1' union  select '37012108','3' union  select '37012209','4' union  select '37012301','4' union  select '37012302','4' union  select '37012303','1' union  select '37012305','3' union  select '37012401','4' union  select '37012402','10' union  select '37012409','11' union  select '37012410','1' union  select '37012411','4' union  select '37012412','4' union  select '37012413','1' union  select '37012415','1' union  select '37012417','1' union  select '37012418','6' union  select '37012419','1' union  select '37012421','1' union  select '37012423','1' union  select '37012424','4' union  select '37012426','5' union  select '37012431','1' union  select '37012502','1' union  select '37012504','4' union  select '37012505','3' union  select '37012602','3' union  select '37012603','3' union  select '37012701','5' union  select '37012703','3' union  select '37012710','1' union  select '37013001','8' union  select '37013002','4' union  select '37013106','8' union  select '37030201','2' union  select '37030203','5' union  select '37030301','1' union  select '37030306','1' union  select '37030402','2' union  select '37030403','2' union  select '37030501','1' union  select '37030601','3' union  select '37030605','1' union  select '37030704','9' union  select '37030707','3' union  select '37030709','4' union  select '37030710','3' union  select '37030711','2' union  select '37030716','3' union  select '37030802','1' union  select '37030804','3' union  select '37030905','2' union  select '37030907','2' union  select '37031103','3' union  select '37031105','3' union  select '37031129','4' union  select '37031130','8' union  select '37031204','1' union  select '37031207','2' union  select '37031301','4' union  select '37031310','1' union  select '37031312','2' union  select '37031506','1' union  select '37031706','1' union  select '37031707','1' union  select '37031710','2' union  select '37031711','4' union  select '37031712','1' union  select '37031713','1' union  select '37031728','3' union  select '37032501','1' union  select '38010101','4' union  select '38010102','16' union  select '38010105','4' union  select '38010106','3' union  select '38010108','3' union  select '38010121','3' union  select '38010202','3' union  select '38010227','3' union  select '38010228','3' union  select '38010301','3' union  select '38010304','3' union  select '38010309','3' union  select '38010312','4' union  select '38010313','3' union  select '38010315','3' union  select '38010317','3' union  select '38010318','4' union  select '38010324','8' union  select '38010325','11' union  select '38010401','3' union  select '38010403','1' union  select '38010404','3' union  select '38010507','3' union  select '38010513','4' union  select '38010520','4' union  select '38010523','3' union  select '38010524','1' union  select '38010530','4' union  select '38010539','3' union  select '38010809','3' union  select '38010825','3' union  select '38011111','3' union  
+select '38011118','3' union  select '38011135','1' union  select '38011515','3' union  select '38020101','1' union  select '38020102','2' union  select '38020103','9' union  select '38020104','12' union  select '38020211','2' union  select '38031001','1' union  select '38040205','8' union  select '38040208','1' union  select '38040301','15' union  select '38040303','1' union  select '38040304','3' union  select '38040305','10' union  select '38040306','15' union  select '38040307','1' union  select '38040308','18' union  select '38040401','6' union  select '38040402','9' union  select '38040405','5' union  select '38040602','8' union  select '38040701','5' union  select '39030902','2' union  select '39031704','2' union  select '39031801','2' union  select '39032402','4' 
+  
+
+    
+
+  delete from DAppResult.dbo.Input_Plgh where sFdbh='018425'
+
+  insert into DAppResult.dbo.Input_Plgh(sFdbh,sPlbh,nGhs,dAddTime)
+  select '018425',sflbh,bghs,GETDATE() from #1
+
+-- 散货转联营，规划数改成0 
+   update a set a.nGhs=0  from DAppResult.dbo.Input_Plgh a  where  sFdbh='018425' 
+  and sPlbh like '2306%'

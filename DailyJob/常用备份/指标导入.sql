@@ -90,6 +90,7 @@
 		begin 
 			drop table #zzb3 
 		end
+        
      select a.sSpbh,SUM(a.nXse*b.pxs/(b.xse+0.00001)*0.3 + a.nml*b.pxs/(b.ml+0.00001)*0.4 + a.npxs*0.3) 
 	as nZbz, count(a.sFdbh) as Jyds into #zzb3 from  #zzb1 b, Input_Xp_Sp_Fd a
 	where      a.sFdbh='0000' and b.sflbh=a.sflbh  
