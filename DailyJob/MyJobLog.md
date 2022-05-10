@@ -87,7 +87,6 @@ update a set a.sGysdhr=case when b.type is null then '' else '(' + b.type + ')' 
 
     3 返仓再销售商品数100
 
-
 ### 2022-04-20
 
 1、配送包装数过大解决方案
@@ -97,3 +96,5 @@ update a set a.sGysdhr=case when b.type is null then '' else '(' + b.type + ')' 
     1.2 动态拆零位
 
     1.3 4个试点门店集群
+
+### 2022-04-24

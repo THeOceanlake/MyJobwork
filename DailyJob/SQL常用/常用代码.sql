@@ -422,7 +422,9 @@ select '06907992513607' sspbh into #waisp  union  select '6923644272159' union  
 
  -- 用 index_sp 表匹配
   insert into DAppSource_WJL.dbo.R_recommond_spmx(sSpbh,sfdbh,d_into_date) 
-  select a.sSpbh,a.sfdbh,a.IntoDate  from (select a.sSpbh,b.sfdbh,b.IntoDate,a.sResource,b.OutDate  from  R_recommond_sp a,DAppSource_WJL.dbo.Index_Sp b where a.sSpbh=b.sspbh  and (b.IntoDate
+  select a.sSpbh,a.sfdbh,a.IntoDate  from 
+  (select a.sSpbh,b.sfdbh,b.IntoDate,a.sResource,b.OutDate  
+  from  R_recommond_sp a,DAppSource_WJL.dbo.Index_Sp b where a.sSpbh=b.sspbh  and (b.IntoDate
   >a.dcreate_date   )) a
  left join DAppSource_WJL.dbo.R_recommond_spmx b on a.sfdbh=b.sfdbh and a.sspbh=b.sspbh
  where b.sfdbh is null;
@@ -870,3 +872,39 @@ select a.*,case when a.nrjxse=0 then 300 else  a.nkcje*1.0/a.nrjxse end nzzts,ca
 a.nsxkcje*1.0/a.nrjxse end  nsxkcts from x1 a 
 left join x0 b on 1=1
 where 1=1 
+
+--------企业商品重合度
+select distinct  a.sspbh,a.sSpmc  into #btsp
+from  dbo.R_Dpzb a
+where a.sPlbh not in (select sFlbh from dbo.Tmp_Spflb_Ex) 
+and   a.sSpbh not in (select sSpbh from dbo.tmp_spb_ex)
+ 
+ with x0 as(
+ select b.sFdbh,a.*  from #btsp a ,(select distinct sfdbh from r_dpzb)b)
+ select a.sFdbh,c.sFDMC,sum(case when b.sFdbh is not null then 1 else 0 end ) nfdsps,COUNT(distinct a.sSpbh) nzsps,
+ sum(case when b.sFdbh is not null then 1 else 0 end )/COUNT(distinct a.sSpbh)   from x0 a 
+ left join R_Dpzb b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh
+ left join Tmp_FDB c on a.sFdbh=c.sFDBH
+ where 1=1 group by a.sFdbh,c.sFDMC order by 5 
+
+
+ 
+ -- 从商品上架率管理里面区
+ insert into DAppSource_WJL.dbo.R_recommond_sp(sSpbh,dcreate_date,sResource)
+ select distinct  sSpbh,convert(date,dSjDate),'好品上架' from dbo.T_Spsj_result_in
+ where 1=1 and dSjDate>'2022-03-01'
+ and sSpbh not in(select sSpbh  from dbo.R_recommond_sp )  
+
+  -- 用 index_sp 表匹配
+  insert into  dbo.R_recommond_spmx(sSpbh,sfdbh,d_into_date) 
+  select a.sSpbh,a.sfdbh,a.IntoDate  from 
+  (select a.sSpbh,b.sfdbh,b.IntoDate,a.sResource,b.OutDate  
+  from  R_recommond_sp a, dbo.Index_Sp b where a.sSpbh=b.sspbh  and (b.IntoDate
+  >a.dcreate_date   )) a
+ left join  dbo.R_recommond_spmx b on a.sfdbh=b.sfdbh and a.sspbh=b.sspbh
+ where b.sfdbh is null;
+-- 选品因素初始化
+insert into BD_Flys_Value(sSpbh,sQybh,sFlys,sYsValue_V) 
+select distinct sSpbh,a.sQybh,sFlys,sYsValue_V from Xp_BD_Flys_Value_All a
+join BD_Flb b on a.sFlbh=b.sFlbh
+where sFlys<>'档次'

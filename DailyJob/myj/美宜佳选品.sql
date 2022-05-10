@@ -37,7 +37,7 @@ select 0.3,0.3,0.4,1;
         /* 从R_dpzb 找结束时间最多的时间，再匹配这个时间下的门店，就是有效门店 */
 		with x0 as (
 		select  a.EndDate,count(distinct a.sFdbh) nfds  from R_Dpzb a group by a.EndDate)
-		,x1 as (select  a.EndDate,ROW_NUMBER()over(order by a.nfds desc) npm  from x0  a )
+		,x1 as (select  a.EndDate,ROW_NUMBER()over(order by a.EndDate desc) npm  from x0  a )
 		select distinct  a.sFdbh,b.sFdmc, a.EndDate  into #sfd from  R_Dpzb a,
 		dbo.tmp_fdb b  where  a.EndDate in ( select EndDate from x1  where npm=1)
          and a.sFdbh=b.sFDBH;

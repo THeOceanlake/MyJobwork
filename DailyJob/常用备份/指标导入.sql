@@ -103,3 +103,20 @@
 
        --  update BD_Sp set sFlbh=sFlbh_User
 
+	update a set a.sYsValue_V=c.sYsValue from  DAppResult.dbo.Xp_BD_Flys_Value a 
+	join master.dbo.TMP_DXP_TASTE c   on a.sSpbh=c.sSpbh and a.sFlys=c.sflys
+	where 1=1  and ISNUMERIC(c.sYsValue)=1 ;
+
+	update a set a.sYsValue_V=c.sYsValue from  DAppResult.dbo.Xp_BD_Flys_Value_All a 
+	join master.dbo.TMP_DXP_TASTE c   on a.sSpbh=c.sSpbh and a.sFlys=c.sflys
+	where 1=1 and ISNUMERIC(c.sYsValue)=1 ;
+
+
+	update a set a.sYsValue=c.sYsValue from  DAppResult.dbo.Xp_BD_Flys_Value a 
+	join master.dbo.TMP_DXP_TASTE c   on a.sSpbh=c.sSpbh and a.sFlys=c.sflys
+	where 1=1  and ISNUMERIC(c.sYsValue)=0 ;
+
+	update a set a.sYsValue=c.sYsValue from  DAppResult.dbo.Xp_BD_Flys_Value_All a 
+	join master.dbo.TMP_DXP_TASTE c   on a.sSpbh=c.sSpbh and a.sFlys=c.sflys
+	where 1=1  and ISNUMERIC(c.sYsValue)=0  ;
+

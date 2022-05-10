@@ -18,6 +18,15 @@
 5、进价低于70元的，且日均大于等于0且小于0.05的单品，给面位*层数
 6、散货，单位是KG的，取 货架最低陈列值
 
+-- 修改版
+1、进价大于70元以上的 只给面位数 
+4、进价低于70元的，且日均大于等于0.05 单品，给面位*层数*1.5，
+如果层数<2，若深度低于2，则用原深度，
+  如果是深度是1 就不加系数
+5、进价低于70元的，且日均大于等于0且小于0.05的单品，给面位*层数
+6、散货，单位是KG的，取 货架最低陈列值
+
+给两个值
 
 */
 /*
@@ -122,8 +131,64 @@ case
 	 when a.njj<100  and upper(isnull(a.sdw,''))<>'KG' and  a.nRjxsl>=0.05 
         then case when a.nmins<2 then a.nhjzdcl else  ceiling(a.nhjdw*1.5) end
 	 when a.njj<100  and upper(isnull(a.sdw,''))<>'KG' and  a.nRjxsl>=0 and a.nRjxsl<0.05 then  a.nhjdw
-end    from #7 a  order by a.sfdbh,a.sspbh desc7
+end    from #7 a  order by a.sfdbh,a.sspbh desc7 
 /*
     需要注意的点
     1、部分商品的面位数或者层数设置很不合理，解决方案两种：修改货架，给最低陈列限定一个大值
 */
+-- drop table #7  0425 修改
+select a.sFdbh,a.sFDMC,a.sSpbh,a.sspmc,a.njj,a.sdw,a.sort,a.spsfs,a.FlagLevel,a.isnormal,a.alcqty,a.min_purchase_qty,
+sum(a.nM) nm ,max(a.nC) nc,max(a.nS) ns,max(a.nMinS) nmins,sum(a.nm*a.nc) nhjdw,
+sum(nhjzdcl) nhjzdcl,sum(a.nmhjs) nmhjs,a.sgys,a.sgysmc,a.days,a.ValidDay,a.nRjxsl,a.nSx,a.nXx,
+case when a.nzdcl_cal>0 then a.nzdcl_cal else 4 end nzdcl_cal,a.nMws,a.nPls,
+case when a.szdbh='1' then '自动补货' else '非自动补货' end szdbh,a.ndqkc,a.sLx,
+sum(case 
+    when upper(a.sdw)='KG' then  a.nhjzdcl 
+    when a.njj>=70 and   upper(isnull(a.sdw,''))<>'KG'  then  a.nm    
+	 when a.njj<70  and upper(isnull(a.sdw,''))<>'KG' and  a.nRjxsl>=0.05 
+        then ceiling(a.nm*a.nc*case when a.nMinS<=2 then a.nMinS else 2  end) 
+	 when a.njj<70  and upper(isnull(a.sdw,''))<>'KG' and  a.nRjxsl>=0 and a.nRjxsl<0.05 then  a.nm*a.nc
+end) nt1
+ into #7 from #6 a  where 1=1 and a.spsfs is not null 
+group by 
+ a.sFdbh,a.sFDMC,a.sSpbh,a.sspmc,a.sort,a.spsfs,a.FlagLevel,a.isnormal,a.alcqty,a.min_purchase_qty,
+ a.sgys,a.sgysmc,a.days,a.ValidDay,a.nRjxsl,a.nSx,a.nXx,
+case when a.nzdcl_cal>0 then a.nzdcl_cal else 4 end  ,a.nMws,a.nPls,a.szdbh,a.njj,a.sdw,a.ndqkc,a.slx
+order by  sfdbh,sort,sSpbh;
+
+  select  a.sfdbh,a.sfdmc,a.sspbh,a.sSpmc,a.njj,a.szdbh,a.sdw,a.sort,a.spsfs,a.isnormal,a.FlagLevel,a.MIN_PURCHASE_QTY,
+a.alcqty,a.nm,a.nc,a.ns,a.nmins,a.nmhjs,a.nRjxsl,a.nsx,a.nxx,a.nzdcl_cal,a.nhjzdcl,nm,floor(case when nm=0 then 0 else nt1*1.0/nm end),floor(case when nm=0 then 0 else nt1*1.0/nm end)*nm nr
+  from #7  order by sfdbh,sspbh
+
+
+-- select a.sfdbh,a.sfdmc,a.sspbh,a.sSpmc,a.njj,a.szdbh,a.sdw,a.sort,a.spsfs,a.isnormal,a.FlagLevel,a.MIN_PURCHASE_QTY,
+-- a.alcqty,a.nm,a.nc,a.ns,a.nmins,a.nmhjs,a.nRjxsl,a.nsx,a.nxx,a.nzdcl_cal,a.nhjzdcl,
+-- case 
+--     when upper(a.sdw)='KG' then  a.nhjzdcl 
+--     when a.njj>=70 and   upper(isnull(a.sdw,''))<>'KG'  then  a.nm    
+-- 	 when a.njj<100  and upper(isnull(a.sdw,''))<>'KG' and  a.nRjxsl>=0.05 then ceiling(a.nhjdw*1.5) 
+-- 	 when a.njj<100  and upper(isnull(a.sdw,''))<>'KG' and  a.nRjxsl>=0 and a.nRjxsl<0.05 then  a.nhjdw
+-- end    from #7 a  order by a.sfdbh,a.sspbh desc
+
+
+
+--  -- drop table #8
+-- select a.sfdbh,a.sfdmc,a.sspbh,a.sSpmc,a.njj,a.szdbh,a.sdw,a.sort,a.spsfs,a.isnormal,a.FlagLevel,a.MIN_PURCHASE_QTY,
+-- a.alcqty,a.nm,a.nc,a.ns,a.nmins,a.nmhjs,a.nRjxsl,a.nsx,a.nxx,a.nzdcl_cal,a.nhjzdcl,
+-- case 
+--     when upper(a.sdw)='KG' then  a.nhjzdcl 
+--     when a.njj>=70 and   upper(isnull(a.sdw,''))<>'KG'  then  a.nm    
+-- 	 when a.njj<100  and upper(isnull(a.sdw,''))<>'KG' and  a.nRjxsl>=0.05 then ceiling(a.nhjdw*1.5) 
+-- 	 when a.njj<100  and upper(isnull(a.sdw,''))<>'KG' and  a.nRjxsl>=0 and a.nRjxsl<0.05 then  a.nhjdw
+-- end n1,case 
+--     when upper(a.sdw)='KG' then  a.nhjzdcl 
+--     when a.njj>=70 and   upper(isnull(a.sdw,''))<>'KG'  then  a.nm    
+-- 	 when a.njj<100  and upper(isnull(a.sdw,''))<>'KG' and  a.nRjxsl>=0.05 then 
+-- 	 case when a.nc<2 then  ceiling(a.nhjdw* (case when a.nmins<=2 then a.nmins else 1.5 end) )
+-- 	  else   ceiling(a.nhjdw*1.5)end
+-- 	 when a.njj<100  and upper(isnull(a.sdw,''))<>'KG' and  a.nRjxsl>=0 and a.nRjxsl<0.05 then  a.nhjdw
+-- end n2 into #8   from #7 a  order by a.sfdbh,a.sspbh desc
+
+
+-- select *,nm,case when nm=0 then 0 else n1*1.0/nm end  npl1, nm nm2 ,
+-- case when nm=0 then 0 else n2*1.0/nm end   npl2  from #8

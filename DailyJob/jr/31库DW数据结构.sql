@@ -879,3 +879,57 @@ CREATE TABLE [dbo].[vendor](
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 
 GO
+
+
+----- 各种措施落地跟踪
+CREATE TABLE Tmp_Measures_list(
+	Measure_Name varchar(200) Not NULL, -- 执行措施，90天处理，商品优化，高库存处理，停购商品处理等
+	Measure_batch varchar(100), --措施的批次名称，比如90天计划的 2月，商品上架率的 某一期 20220425总部
+	CreateTime datetime,--创建时间
+	sFdbh varchar(50) NOT NULL,--门店
+	sSpbh varchar(50) NOT NULL,-- 商品
+	sSpmc varchar(300),-- 商品名称
+	sAdvice_raw varchar(100) ,--给出的处理操作
+	sAdvice_result varchar(100),-- 实际的执行结果
+	PRIMARY KEY (Measure_Name,Measure_batch,sFdbh,sSpbh)
+
+);
+
+Create Table Tmp_TailCargo(
+	sMonth varchar(20) not null,--清理计划时间
+	Bdate date not null,--开始时间
+	Edate date not null,-- 结束时间
+	sFdbh varchar(20) not null,--分店
+	sFdmc varchar(100),
+	sSpbh Varchar(50) not null,--商品
+	sSpmc varchar(200),
+	nTjj money,-- 特进价
+	nTsj money,-- 特价售价
+	sManager varchar(50) ,--负责人
+	PRIMARY KEY(sMonth,sFdbh,sSpbh)
+);
+
+
+Create Table Tmp_TailCargo_Suggest(
+	drq date not null,--计算日期
+	sMonth varchar(20) not null,--清理计划时间
+	Bdate date not null,--开始时间
+	Edate date not null,-- 结束时间
+	sFdbh varchar(20) not null,--分店
+	sSpbh Varchar(50) not null,--商品
+	nPsj money,--当前门店配送价
+	nLsj money,--当前门店售价
+	nQckc money,-- 期初库存数量
+	nDqkc money,-- 当前库存数量
+	nZxssl money,--总销售数量
+	nDays_remaining int,-- 剩余时间长度
+	sZt varchar(20) not null,-- 当前处于的状态，已清退，未完成，已恢复采购，负库存等
+	sstage varchar(20),--判断的时间，既采购定价，系统建议
+	ndays_already int not null,--当前日期距开始时间的天数
+	nsjjjd money,-- 时间进度
+	nkccljd money,--库存处理进度
+	nCxj_last money,--最后促销价，至当前执行的或当前无计划，已经结束的最后的促销价
+    ncxj_suggest money ,-- 建议价
+	sSftj varchar(50),-- 是否需要调价进入下一阶段
+	PRIMARY KEY(drq,sMonth,sFdbh,sSpbh)
+);
