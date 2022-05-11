@@ -2498,9 +2498,9 @@ join #tmp_cx b on a.sfdbh=b.sfdbh and a.sspbh=b.sspbh
 where 1=1;
 
 -- drop table   #dhyq 
-select a.sfdbh,a.sspbh into #dhyq from #tmp_dh_cal a
+select distinct a.sfdbh,a.sspbh into #dhyq from #tmp_dh_cal a
 join #tmp_dh_cal b on a.sfdbh=b.sfdbh and a.sspbh=b.sspbh
-where  a.npm_cal=1 and b.npm_cal=2 and 
+where  a.npm_cal=1 and b.npm_cal>=2 and 
 datediff(day,convert(date,a.dyhrq),convert(date,b.dshrq))>=0
 and datediff(hour,b.dyhrq,a.dyhrq)>30
 and a.ncgsl_old is not null 

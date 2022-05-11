@@ -886,13 +886,13 @@ CREATE TABLE Tmp_Measures_list(
 	Measure_Name varchar(200) Not NULL, -- 执行措施，90天处理，商品优化，高库存处理，停购商品处理等
 	Measure_batch varchar(100), --措施的批次名称，比如90天计划的 2月，商品上架率的 某一期 20220425总部
 	CreateTime datetime,--创建时间
+	EndDate date,-- 增加一个截止时间，作为每批次的处理
 	sFdbh varchar(50) NOT NULL,--门店
 	sSpbh varchar(50) NOT NULL,-- 商品
 	sSpmc varchar(300),-- 商品名称
 	sAdvice_raw varchar(100) ,--给出的处理操作
 	sAdvice_result varchar(100),-- 实际的执行结果
-	PRIMARY KEY (Measure_Name,Measure_batch,sFdbh,sSpbh)
-
+	PRIMARY KEY (Measure_Name,Measure_batch,sFdbh,sSpbh,CreateTime)
 );
 
 Create Table Tmp_TailCargo(

@@ -967,3 +967,63 @@ left join dbo.tmp_spflb d on d.sflbh=b.sflbh
 left join dbo.tmp_fdb e on a.sfdbh=e.sfdbh
 left join dbo.P_SHOP_ITEM_OUTPUT f on a.sspbh=f.ITEM_CODE and a.sfdbh=f.DEPT_CODE
 where 1=1  order by 1,a.sflbh,a.sspbh
+
+
+select * into #R_dpzb from [122.147.10.202].dappresult.dbo.R_dpzb where sfdbh='018425'
+select * from #R_dpzb
+
+select a.sfdbh,e.sfdmc,a.sspbh,a.sspmc,f.SHIFT_PRICE npsj,f.RETAIL_PRICE nlsj,f.MIN_PURCHASE_QTY npsbzs,f.STOP_INTO,
+case when f.SEND_CLASS_T='01' then '配送' when f.SEND_CLASS_T='02' then '直送'
+      when f.SEND_CLASS_T='03' then '一步越库' when f.SEND_CLASS_T='04' then '二步越库' end spsfs,
+     b.sflbh+b.sflmc sdl,c.sflbh+c.sflmc szl, d.sflbh+d.sflmc sfl,gs.scgqy,a.nxssl,a.nxsje,g.nxssl,g.nxsje,g.nxsml,g.npxs,g.nzhzb,case when g.sfdbh is not null 
+     then '线上销动商品' end,case when f.STOP_INTO='N' and f.STOP_SALE='N' and f.VALIDATE_FLAG='Y' then '经营商品' else '陈列商品' end   from  #R_dpzb a 
+left join dbo.tmp_spflb b on LEFT(a.splbh,4)=b.sflbh
+left join dbo.tmp_spflb c on LEFT(a.splbh,6)=c.sflbh
+left join dbo.tmp_spflb d on d.sflbh=a.splbh
+left join dbo.tmp_fdb e on a.sfdbh=e.sfdbh
+left join dbo.P_SHOP_ITEM_OUTPUT f on a.sspbh=f.ITEM_CODE and a.sfdbh=f.DEPT_CODE
+left join #5 g on a.sfdbh=g.sfdbh and a.sspbh=g.sspbh
+left join dbo.goods gs on a.sspbh=gs.code
+where 1=1  order by 1,a.splbh,a.sspbh;
+
+
+select * into tmp_Tmp_Measures_list from dbo.Tmp_Measures_list 
+
+insert into Tmp_Measures_list(Measure_Name,Measure_batch,CreateTime,enddate,sFdbh,sSpbh,sSpmc,sAdvice_raw,sAdvice_result)
+select '逆向物流',CONVERT(varchar(30),a.AddTime,112)+'期',a.AddTime, a.Edate,a.sFdbh,b.sSpbh,c.name,a.sLx,case when b.DcTime IS not null then a.sLx else '' end   from  
+[122.147.10.200].DAppSource.dbo.BadStock_Notice a,
+[122.147.10.200].DAppSource.dbo.BadStock_Notice_Items b ,dbo.goods c 
+where a.sFdbh ='018425' and a.AddTime>CONVERT(date,getdate()-7) and b.sspbh=c.code
+and a.sDh=b.sDh ; 
+
+
+2022-05-11
+1、
+--停购库存的数据 drop table #1
+select a.DEPT_CODE,a.ITEM_CODE,a.STOP_INTO,b.nkcje,b.nkcsl,a.RETURN_ATTRIBUTE into #1 from dbo.P_SHOP_ITEM_OUTPUT a 
+join dbo.tmp_kclsb b on a.DEPT_CODE=b.sfdbh and a.ITEM_CODE=b.sspbh and b.drq=CONVERT(date,GETDATE()-1)
+where a.DEPT_CODE='018425' and b.nkcje>0 and a.STOP_INTO='Y' and a.CHARACTER_TYPE='N';
+
+select COUNT(1), SUM(case when  b.sFdbh IS  not null then 1 else 0 end ) njysps,SUM(case when  b.sFdbh IS    null then 1 else 0 end ) nwjysps ,
+SUM(nkcje), SUM(case when  b.sFdbh IS  not null then a.nkcje else 0 end ) njyspskcje,
+SUM(case when  b.sFdbh IS    null then a.nkcje else 0 end ) nwjysps from #1  a
+left join Tmp_Measures_list b on a.DEPT_CODE=b.sFdbh and a.item_code=b.sSpbh and b.Enddate>GETDATE()
+ join dbo.goods c on a.ITEM_CODE=c.code
+left join tmp_spflb d on c.sort=d.sflbh
+left join P_SHOP_ITEM_OUTPUT e on a.DEPT_CODE=e.DEPT_CODE and a.ITEM_CODE=e.ITEM_CODE
+where 1=1 and (( c.sort>'20' and c.sort<'40') or (
+LEFT(c.sort,4) in ('1105','1307','1309','1406') ))
+and LEFT(c.sort,4)<>'2201';
+
+select  a.DEPT_CODE,a.ITEM_CODE,c.name,d.sflbh,d.sflmc,c.scgqy,a.nkcsl,a.nkcje,b.sAdvice_raw,b.sAdvice_result ,a.RETURN_ATTRIBUTE from #1  a
+left join Tmp_Measures_list b on a.DEPT_CODE=b.sFdbh and a.item_code=b.sSpbh and b.Enddate>GETDATE()
+  join dbo.goods c on a.ITEM_CODE=c.code
+left join tmp_spflb d on c.sort=d.sflbh
+where 1=1  and (( c.sort>'20' and c.sort<'40') or (
+LEFT(c.sort,4) in ('1105','1307','1309','1406') ))
+and LEFT(c.sort,4)<>'2201'
+ 
+
+ 
+
+ 

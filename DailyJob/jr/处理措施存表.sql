@@ -57,4 +57,21 @@ select '4月' smonth,convert(date,'2022-04-01') ,dateadd(day,-1,CONVERT(date,'20
 insert into Tmp_Measures_list(Measure_name,Measure_batch,CreateTime,sFdbh,sSpbh,sSpmc,sAdvice)
 select '停购商品90天处理方案',a.清理计划时间,b.Bdate,a.sFdbh,a.sspbh,a.sspmc,'90天促销' from   DappSource_Dw.dbo.Tmp_dr_0419 a
 join #Tmp_time b on a.清理计划时间=b.smonth
+
+
+
+insert into Tmp_Measures_list(Measure_Name,Measure_batch,CreateTime,enddate,sFdbh,sSpbh,sSpmc,sAdvice_raw,sAdvice_result)
+ select Measure_Name,Measure_batch,CreateTime,case when Measure_batch='2月' then dateadd(day,-1,CONVERT(date,'2022-05-01'))
+  when Measure_batch='3月' then dateadd(day,-1,CONVERT(date,'2022-06-01'))
+  when Measure_batch='4月' then dateadd(day,-1,CONVERT(date,'2022-07-01')) 
+ end  enddate,sFdbh,sSpbh,sSpmc,sAdvice_raw,sAdvice_raw 
+ from tmp_Tmp_Measures_list where sAdvice_raw='90天促销'
+
+
+insert into Tmp_Measures_list(Measure_Name,Measure_batch,CreateTime,enddate,sFdbh,sSpbh,sSpmc,sAdvice_raw,sAdvice_result)
+select '逆向物流',CONVERT(varchar(30),a.AddTime,112)+'期',a.AddTime, a.Edate,a.sFdbh,b.sSpbh,c.name,a.sLx,case when b.DcTime IS not null then a.sLx else '' end   from  
+[122.147.10.200].DAppSource.dbo.BadStock_Notice a,
+[122.147.10.200].DAppSource.dbo.BadStock_Notice_Items b ,dbo.goods c 
+where a.sFdbh ='018425' and a.AddTime>CONVERT(date,getdate()-7) and b.sspbh=c.code
+and a.sDh=b.sDh ; 
  

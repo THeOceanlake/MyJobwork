@@ -97,3 +97,28 @@ select convert(date,SALE_DATE) drq,LEFT(b.sort,4) sdlbh, sum(isnull(a.SALE_COST,
 		join #goods b on a.ITEM_CODE=b.code
 		where    CONVERT(date,a.SALE_DATE)>=convert(date,getdate()-30)    and  CONVERT(date,a.SALE_DATE)<CONVERT(date,GETDATE())
 		  group by  convert(date,a.SALE_DATE)  ,LEFT(b.sort,4)
+
+
+--停购库存的数据 drop table #1
+select a.DEPT_CODE,a.ITEM_CODE,a.STOP_INTO,b.nkcje,b.nkcsl,a.RETURN_ATTRIBUTE into #1 from dbo.P_SHOP_ITEM_OUTPUT a 
+join dbo.tmp_kclsb b on a.DEPT_CODE=b.sfdbh and a.ITEM_CODE=b.sspbh and b.drq=CONVERT(date,GETDATE()-1)
+where a.DEPT_CODE='018425' and b.nkcje>0 and a.STOP_INTO='Y' and a.CHARACTER_TYPE='N';
+
+select COUNT(1), SUM(case when  b.sFdbh IS  not null then 1 else 0 end ) njysps,SUM(case when  b.sFdbh IS    null then 1 else 0 end ) nwjysps ,
+SUM(nkcje), SUM(case when  b.sFdbh IS  not null then a.nkcje else 0 end ) njyspskcje,
+SUM(case when  b.sFdbh IS    null then a.nkcje else 0 end ) nwjysps from #1  a
+left join Tmp_Measures_list b on a.DEPT_CODE=b.sFdbh and a.item_code=b.sSpbh and b.Enddate>GETDATE()
+ join dbo.goods c on a.ITEM_CODE=c.code
+left join tmp_spflb d on c.sort=d.sflbh
+left join P_SHOP_ITEM_OUTPUT e on a.DEPT_CODE=e.DEPT_CODE and a.ITEM_CODE=e.ITEM_CODE
+where 1=1 and (( c.sort>'20' and c.sort<'40') or (
+LEFT(c.sort,4) in ('1105','1307','1309','1406') ))
+and LEFT(c.sort,4)<>'2201';
+
+select  a.DEPT_CODE,a.ITEM_CODE,c.name,d.sflbh,d.sflmc,c.scgqy,a.nkcsl,a.nkcje,b.sAdvice_raw,b.sAdvice_result ,a.RETURN_ATTRIBUTE from #1  a
+left join Tmp_Measures_list b on a.DEPT_CODE=b.sFdbh and a.item_code=b.sSpbh and b.Enddate>GETDATE()
+  join dbo.goods c on a.ITEM_CODE=c.code
+left join tmp_spflb d on c.sort=d.sflbh
+where 1=1  and (( c.sort>'20' and c.sort<'40') or (
+LEFT(c.sort,4) in ('1105','1307','1309','1406') ))
+and LEFT(c.sort,4)<>'2201'
