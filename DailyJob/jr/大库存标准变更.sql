@@ -1874,10 +1874,10 @@ where 1=1 and  a.nsl>=2 )
 select * into #jcmx from x0  where npm<=2;
  
 -- Step 2.2.0:多点陈列和配送包装数 drop table  #de_history
-select sfdbh,sspbh,spsfs,nzdcl,nZdcl_offset,max(drq) drq_max,min(drq) min_drq  into #de_history
+select sfdbh,sspbh,spsfs,nzdcl,nZdcl_offset,nPsbzs,ncgbzs,max(drq) drq_max,min(drq) min_drq  into #de_history
 from  DappSource_Dw.dbo.sys_deliveryset
 where  drq>=convert(date,getdate()-180)
-group by  sfdbh,sspbh,spsfs,nzdcl,nZdcl_offset;
+group by  sfdbh,sspbh,spsfs,nzdcl,nZdcl_offset,nPsbzs;
 
 --  原因划分
 -- Step 2.3:遗留库存
@@ -1924,7 +1924,6 @@ and CONVERT(date,b.dYhrq)<=CONVERT(date,c.drq_max) or  (CONVERT(date,b.dYhrq)<CO
 update a set a.syy=b.sJcfl,a.dzhdhr=b.dSj,a.nDhsl=b.nDhsl 
 from #mddkc a  join #jcmx b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh  and b.sjcfl not in('入库','调入(配送折让)','调入(配送)','调入(配送)赠品') 
 and b.npm=1
- 
 where  1=1  and len(a.syy)=0 and  b.nDhsl>=a.nsl*0.2;
 /*
 select * from #mddkc a  join #jcmx b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh
@@ -1932,12 +1931,26 @@ where  1=1  and b.sjcfl not in('入库','调入(配送折让)','调入(配送)',
 and  a.sspbh='23080011'  and a.sfdbh='018329';
 */
  
- 
+ /*  最后到货日的最后下单日的包装数相等，则是配送包装的问题，应对配送包装更改的问题*/
+ with x0 as (
+select a.sFdbh,a.sSpbh,isnull(d.dShrq,b.dsj) dSj,isnull(d.nShsl,b.ndhsl) nDhsl,a.sPsfs,a.sZdbh,d.sLx,d.sBz,d.nYhsl,d.dYhrq,d.nYhsl_raw ,
+d.ncgsl_old,ROW_NUMBER()over(partition by a.sfdbh,a.sspbh order by d.dYhrq desc,d.nYhsl desc) nyhpm
+,a.nrjxl,a.nrjxse,a.nzdcl,a.nsl,a.nPsbzs,a.nCgbzs,d.sSource from #mddkc a 
+ join #jcmx b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh and b.npm=1
+	 and b.sjcfl   in ('入库','调入(配送折让)','调入(配送)','调入(配送)赠品')
+left join  Dappsource_DW.dbo.vendor c on a.sGys=c.code  
+left  join #TMP_dh_cal d on a.sFdbh=d.sFdbh and a.sSpbh=d.sspbh  
+  and d.dShrq is not null  and convert(date,d.dshrq)=CONVERT(date,b.dsj)
+where  1=1   and len(a.syy)=0)
+select a.*,b.nPsbzs,b.nzdcl into #bzswt from x0 a 
+join #de_history b on a.sfdbh=b.sfdbh and a.sspbh=b.sspbh and a.dYhrq>=b.min_drq 
+    and convert(date,a.dYhrq)<=b.drq_max 
+where  a.nyhpm=1 ;
 -- Step 2.8:对最后一次到货的包装数：>5 且
  update a set a.syy='配送包装数过大',a.dzhdhr=b.dSj,a.nDhsl=b.nDhsl
-  from #mddkc a  join #jcmx b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh
+  from #mddkc a  join #bzswt b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh
 where  1=1   and len(a.syy)=0 and  a.sPsfs in ('配送','二步越库') 
-and    a.nPsbzs>=a.nsl*0.6  and b.nDhsl=a.nPsbzs and a.nPsbzs>=5 and b.npm=1 ;
+and    b.nPsbzs>=a.nsl*0.6  and b.nDhsl=b.nPsbzs and b.nPsbzs>=5  ;
  
 
 update a set a.syy='配送包装数过大',a.dzhdhr=b.dSj,a.nDhsl=b.nDhsl

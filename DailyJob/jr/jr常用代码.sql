@@ -43,6 +43,9 @@ select '','全部' union
 select sfdbh,sfdbh+sfdmc from  DAppStore.dbo.Tmp_FDB 
 where sFDBH in ('018329','012006','018389','012007','018425')
 
+-- 维联门店
+ ('018320','018346','018300','018308','012011','018390','018391')
+
 -- 剩余天数
 and isnull(a.nsl,0)<=a.nrjxl*@day 
 
@@ -122,3 +125,34 @@ left join tmp_spflb d on c.sort=d.sflbh
 where 1=1  and (( c.sort>'20' and c.sort<'40') or (
 LEFT(c.sort,4) in ('1105','1307','1309','1406') ))
 and LEFT(c.sort,4)<>'2201'
+
+
+select * INTO #update from DappSource_Dw.dbo.Tmp_Measures_list
+
+--更新新的处理方式
+select sAdvice_Raw result INTO #resultall FROM (
+select DISTINCT sAdvice_raw from #update
+union SELECT DISTINCT sAdvice_result FROM #update) a
+where sAdvice_Raw <> '' AND sAdvice_Raw IS NOT null
+
+DECLARE @maxnum INT
+SELECT @maxnum=MAX(nId) FROM [122.147.10.202].DAppResult.dbo.R_TtSpGl_Clfs 
+select ROW_NUMBER() OVER(ORDER BY result) px,* INTO #new_result from #resultall where 
+result NOT IN (select DISTINCT sClfs_Txt FROM [122.147.10.202].DAppResult.dbo.R_TtSpGl_Clfs)
+UPDATE #new_result SET px = px + @maxnum
+INSERT INTO [122.147.10.202].DAppResult.dbo.R_TtSpGl_Clfs(nId,sClfs_Txt)
+select px,result from #new_result
+
+--更新原因到202
+TRUNCATE TABLE [122.147.10.202].DAppResult.dbo.R_TtSpGl
+INSERT INTO [122.147.10.202].DAppResult.dbo.R_TtSpGl(sFdbh,sSpbh,sClfs,CreateDate,CreateUser,sClfs_suggest)
+SELECT a.sFdbh,a.sSpbh,b.nId,GETDATE(),'31Server',c.nId from #update a 
+LEFT JOIN [122.147.10.202].dbo.R_TtSpGl_Clfs b on a.sAdvice_raw = b.sClfs_Txt
+LEFT JOIN [122.147.10.202].dbo.R_TtSpGl_Clfs c on a.sAdvice_result = c.sClfs_Txt
+
+-- 进出和单据合并
+ select isnull(a.sfdbh,b.sfdbh) sFdbh,isnull(a.sspbh,b.sSpbh) sSpbh,
+ isnull(b.dYhrq,a.dsj) dYhrq,isnull(b.dShrq,a.dsj) dShrq from #jcmx a 
+ full join  #TMP_dh_cal b on a.sFdbh=b.sFdbh and a.sSpbh=b.sspbh  
+   and convert(date,d.dshrq)=CONVERT(date,a.dsj) and a.sjcfl   in ('入库','调入(配送折让)','调入(配送)','调入(配送)赠品')
+  where 1=1 and a.nDhsl<>0  and d.dShrq is not null;

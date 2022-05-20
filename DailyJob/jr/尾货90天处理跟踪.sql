@@ -1116,8 +1116,9 @@ into #Tmp_xs_hz from
  select a.*,ROW_NUMBER()over(partition by a.smonth, a.sfdbh,a.sspbh order by a.nxssl desc) npm from #Tmp_xs_hz a
 ),x1 as (select a.smonth, a.sFdbh,a.sSpbh,min(nxsjg) nzdxsj,sum(a.nxssl) nzxssl  from #Tmp_xs_hz  a group by a.smonth, a.sFdbh,a.sSpbh )
 select a.smonth,a.Bdate,a.edate,a.sFdbh,a.sFdmc,a.sSpbh,a.sSpmc,a.njj,a.nsj,a.spsfs,a.nPsbzs,
-a.sPlbh,b.nkcsl nQckc,a.nkcsl ndqkcsl,d.nzxssl,a.STOP_INTO,a.DISPLAY_MODE,DATEDIFF(day,GETDATE(),a.edate)-1 nsysj
-,DATEDIFF(DAY,a.Bdate,CONVERT(date,GETDATE()))-1 ngcsj,c.nxsjg nxsj_maxxl,d.nzdxsj,e.nxsjg nxsjg_last,e.SALE_DATE drq_last
+a.sPlbh,b.nkcsl nQckc,a.nkcsl ndqkcsl,d.nzxssl,a.STOP_INTO,a.DISPLAY_MODE,
+DATEDIFF(day,convert(date,GETDATE()),a.edate)+1 nsysj
+,DATEDIFF(DAY,a.Bdate,CONVERT(date,GETDATE()))+1 ngcsj,c.nxsjg nxsj_maxxl,d.nzdxsj,e.nxsjg nxsjg_last,e.SALE_DATE drq_last
 ,f.ncxj into #r  from #Base_1 a 
 left join #Tmp_mdkc b on a.sFdbh=b.sfdbh and a.sSpbh=b.sspbh and a.Bdate=b.drq 
 left  join x0 c on a.sfdbh=c.sfdbh and a.sSpbh=c.sSpbh and c.npm=1 and a.smonth=c.smonth  
@@ -1325,8 +1326,9 @@ if (select COUNT(1) from #Tmp_Tail)>0
     select a.*,ROW_NUMBER()over(partition by a.smonth, a.sfdbh,a.sspbh order by a.nxssl desc) npm from #Tmp_xs_hz a
     ),x1 as (select a.smonth, a.sFdbh,a.sSpbh,min(nxsjg) nzdxsj,sum(a.nxssl) nzxssl  from #Tmp_xs_hz  a group by a.smonth, a.sFdbh,a.sSpbh )
     select a.smonth,a.Bdate,a.edate,a.sFdbh,a.sFdmc,a.sSpbh,a.sSpmc,a.njj,a.nsj,a.ntjj,a.spsfs,a.nPsbzs,
-    a.sPlbh,b.nkcsl nQckc,a.nkcsl ndqkcsl,d.nzxssl,a.STOP_INTO,a.DISPLAY_MODE,DATEDIFF(day,GETDATE(),a.edate)-1 nsysj
-    ,DATEDIFF(DAY,a.Bdate,CONVERT(date,GETDATE()))-1 ngcsj,c.nxsjg nxsj_maxxl,d.nzdxsj
+    a.sPlbh,b.nkcsl nQckc,a.nkcsl ndqkcsl,d.nzxssl,a.STOP_INTO,a.DISPLAY_MODE,
+    DATEDIFF(day,convert(date,GETDATE()),a.edate)+1 nsysj
+    ,DATEDIFF(DAY,a.Bdate,CONVERT(date,GETDATE()))+1 ngcsj,c.nxsjg nxsj_maxxl,d.nzdxsj
     ,f.ncxj into #r  from #Base_1 a 
     left join #Tmp_mdkc b on a.sFdbh=b.sfdbh and a.sSpbh=b.sspbh and a.Bdate=b.drq 
     left  join x0 c on a.sfdbh=c.sfdbh and a.sSpbh=c.sSpbh and c.npm=1 and a.smonth=c.smonth  
@@ -1334,8 +1336,7 @@ if (select COUNT(1) from #Tmp_Tail)>0
     left join #tmp_cxgx f on a.sFdbh=f.sFdbh and a.sspbh=f.sspbh and f.npm=1
     where 1=1 ;
 
-
-      declare @tql int;
+          declare @tql int;
       set @tql=4;
       select a.*,ngcsj*1.0/(ngcsj+nsysj) nsjjd,case when isnull(ndqkcsl,0)<=0 then 1
       else isnull(nzxssl,0)/(isnull(nzxssl,0)+isnull(ndqkcsl,0))  end nkcjd ,case when a.STOP_INTO='N' then '状态开通,请核查！'
@@ -1346,28 +1347,28 @@ if (select COUNT(1) from #Tmp_Tail)>0
             case  
                 when ISNULL(a.nzxssl,0)<=0 then 
                   case
-                    when DATEDIFF(day,a.bdate,GETDATE())>=0 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=21  then CONVERT(money,'')     
-                    when DATEDIFF(day,a.bdate,GETDATE())+@tql>21 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=42  then  
+                    when ngcsj-1+@tql>=0 and ngcsj-1+@tql<21  then CONVERT(money,'')     
+                    when ngcsj-1+@tql>=21 and ngcsj-1+@tql<42  then  
                         case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.ncxj is null then a.nsj*0.7 else a.nCxj  end
-                    when DATEDIFF(day,a.bdate,GETDATE())+@tql>42 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=56  then  
+                    when ngcsj-1+@tql>=42 and ngcsj-1+@tql<56  then  
                         case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.ncxj is null then a.nsj*0.5 else a.nCxj  end 
-                    when DATEDIFF(day,a.bdate,GETDATE())+@tql>56 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=70  then  
+                    when ngcsj-1+@tql>=56 and ngcsj-1+@tql<70  then  
                         case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.ncxj is null then a.nsj*0.3 else a.nCxj  end  
-                    when DATEDIFF(day,a.bdate,GETDATE())+@tql>70 and  convert(date,GETDATE())<=a.edate  then  
+                    when ngcsj-1+@tql>=70 and  convert(date,GETDATE())<=a.edate  then  
                         case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.ncxj is null then a.nsj*0.2 else a.nCxj  end 
                     when convert(date,GETDATE())>a.edate   then 0.01
                   end
               when ISNULL(a.nzxssl,0)>0  then 
                 case  when  a.ndqkcsl*a.ngcsj*1.0/a.nzxssl<a.nsysj-10  then  case when a.ncxj is null then a.nsj*0.8 else a.ncxj end 
-                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10 and DATEDIFF(day,a.bdate,GETDATE())>=0 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=21
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10 and ngcsj-1+@tql>=0 and ngcsj-1+@tql<21
                         then CONVERT(money,'')
-                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())>21 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=42
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=21 and ngcsj-1+@tql<42
                       then case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.nCxj is null then a.nsj*0.7  else  a.nCxj   end
-                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())>42 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=56
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=42 and ngcsj-1+@tql<56
                       then case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.nCxj is null then a.nsj*0.5  else  a.nCxj   end
-                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())>56 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=70
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=56 and ngcsj-1+@tql<70
                       then case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.nCxj is null then a.nsj*0.3  else  a.nCxj   end
-                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())+@tql>70 and   convert(date,GETDATE())<=a.edate 
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=70 and   convert(date,GETDATE())<=a.edate 
                       then case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.nCxj is null then a.nsj*0.2  else  a.nCxj   end
                     when convert(date,GETDATE())>a.edate   then 0.01
                 end
@@ -1376,36 +1377,107 @@ if (select COUNT(1) from #Tmp_Tail)>0
             case  
                 when ISNULL(a.nzxssl,0)<=0 then 
                   case
-                    when DATEDIFF(day,a.bdate,GETDATE())>=0 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=21  then '当前是采购定价阶段，系统不提供建议值'     
-                    when DATEDIFF(day,a.bdate,GETDATE())+@tql>21 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=42  then  
+                    when ngcsj-1+@tql>=0 and ngcsj-1+@tql<21  then '当前是采购定价阶段，系统不提供建议值'     
+                    when ngcsj-1+@tql>=21 and ngcsj-1+@tql<42  then  
                         case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.ncxj is null then '系统建议值' else '原采购价'  end
-                    when DATEDIFF(day,a.bdate,GETDATE())+@tql>42 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=56  then  
+                    when ngcsj-1+@tql>=42 and ngcsj-1+@tql<56  then  
                         case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.ncxj is null then '系统建议值' else '原采购价'  end 
-                    when DATEDIFF(day,a.bdate,GETDATE())+@tql>56 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=70  then  
+                    when ngcsj-1+@tql>=56 and ngcsj-1+@tql<70  then  
                         case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.ncxj is null then '系统建议值' else '原采购价'  end  
-                    when DATEDIFF(day,a.bdate,GETDATE())+@tql>70 and  convert(date,GETDATE())<=a.edate  then  
+                    when ngcsj-1+@tql>=70 and  convert(date,GETDATE())<=a.edate  then  
                         case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.ncxj is null then '系统建议值' else '原采购价'  end 
                     when convert(date,GETDATE())>a.edate   then '出清价'
                   end
               when ISNULL(a.nzxssl,0)>0  then 
                 case  
-                    when DATEDIFF(day,a.bdate,GETDATE())>=0 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=21  then '当前是采购定价阶段，系统不提供建议值'
-                    when  a.ndqkcsl*a.ngcsj*1.0/a.nzxssl<a.nsysj-10 and DATEDIFF(day,a.bdate,GETDATE())+@tql>21  then  case when a.ncxj is null then '系统建议值' else '原采购价' end  
-                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10 and DATEDIFF(day,a.bdate,GETDATE())>=0 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=21
+                    when ngcsj-1+@tql>=0 and ngcsj-1+@tql<21  then '当前是采购定价阶段，系统不提供建议值'
+                    when  a.ndqkcsl*a.ngcsj*1.0/a.nzxssl<a.nsysj-10    then  case when a.ncxj is null then '系统建议值' else '原采购价' end  
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10 and ngcsj-1+@tql>=0 and ngcsj-1+@tql<21
                         then '当前是采购定价阶段，系统不提供建议值'  
-                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())+@tql>21 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=42
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=21 and ngcsj-1+@tql<42
                       then case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.nCxj is null then '系统建议值' else '原采购价'   end
-                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())+@tql>42 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=56
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=42 and ngcsj-1+@tql<56
                       then case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.nCxj is null then '系统建议值' else '原采购价'   end
-                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())+@tql>56 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=70
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=56 and ngcsj-1+@tql<70
                       then case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.nCxj is null then '系统建议值' else '原采购价'  end
-                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())+@tql>70 and   convert(date,GETDATE())<=a.edate 
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=70 and   convert(date,GETDATE())<=a.edate 
                       then case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.nCxj is null then '系统建议值' else '原采购价'   end
                     when convert(date,GETDATE())>a.edate   then '出清价'
                 end
             end  
         end sscource into #r1 from #r a
-        where 1=1  order by a.smonth,a.sfdbh,a.sspbh;
+        where 1=1  ;
+      -- declare @tql int;
+      -- set @tql=4;
+      -- select a.*,ngcsj*1.0/(ngcsj+nsysj) nsjjd,case when isnull(ndqkcsl,0)<=0 then 1
+      -- else isnull(nzxssl,0)/(isnull(nzxssl,0)+isnull(ndqkcsl,0))  end nkcjd ,case when a.STOP_INTO='N' then '状态开通,请核查！'
+      --   when ISNULL(a.ndqkcsl,0)=0 and ( a.STOP_INTO<>'N'  or a.STOP_INTO is null)  then '已清退'
+      --   when ISNULL(a.ndqkcsl,0)<0 and ( a.STOP_INTO<>'N' or a.STOP_INTO is null)  then '负库存'
+      --   when ISNULL(a.ndqkcsl,0)>0 and ( a.STOP_INTO<>'N' or a.STOP_INTO is null)   then '未完成' end sflag1,
+      --   case  when  ISNULL(a.ndqkcsl,0)>0 and ( a.STOP_INTO<>'N'  or a.STOP_INTO is null) then 
+      --       case  
+      --           when ISNULL(a.nzxssl,0)<=0 then 
+      --             case
+      --               when DATEDIFF(day,a.bdate,GETDATE())>=0 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=21  then CONVERT(money,'')     
+      --               when DATEDIFF(day,a.bdate,GETDATE())+@tql>21 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=42  then  
+      --                   case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.ncxj is null then a.nsj*0.7 else a.nCxj  end
+      --               when DATEDIFF(day,a.bdate,GETDATE())+@tql>42 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=56  then  
+      --                   case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.ncxj is null then a.nsj*0.5 else a.nCxj  end 
+      --               when DATEDIFF(day,a.bdate,GETDATE())+@tql>56 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=70  then  
+      --                   case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.ncxj is null then a.nsj*0.3 else a.nCxj  end  
+      --               when DATEDIFF(day,a.bdate,GETDATE())+@tql>70 and  convert(date,GETDATE())<=a.edate  then  
+      --                   case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.ncxj is null then a.nsj*0.2 else a.nCxj  end 
+      --               when convert(date,GETDATE())>a.edate   then 0.01
+      --             end
+      --         when ISNULL(a.nzxssl,0)>0  then 
+      --           case  when  a.ndqkcsl*a.ngcsj*1.0/a.nzxssl<a.nsysj-10  then  case when a.ncxj is null then a.nsj*0.8 else a.ncxj end 
+      --               when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10 and DATEDIFF(day,a.bdate,GETDATE())>=0 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=21
+      --                   then CONVERT(money,'')
+      --               when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())>21 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=42
+      --                 then case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.nCxj is null then a.nsj*0.7  else  a.nCxj   end
+      --               when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())>42 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=56
+      --                 then case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.nCxj is null then a.nsj*0.5  else  a.nCxj   end
+      --               when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())>56 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=70
+      --                 then case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.nCxj is null then a.nsj*0.3  else  a.nCxj   end
+      --               when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())+@tql>70 and   convert(date,GETDATE())<=a.edate 
+      --                 then case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.nCxj is null then a.nsj*0.2  else  a.nCxj   end
+      --               when convert(date,GETDATE())>a.edate   then 0.01
+      --           end
+      --       end  
+      --   end njg_raw,  case  when  ISNULL(a.ndqkcsl,0)>0 and ( a.STOP_INTO<>'N'  or a.STOP_INTO is null) then 
+      --       case  
+      --           when ISNULL(a.nzxssl,0)<=0 then 
+      --             case
+      --               when DATEDIFF(day,a.bdate,GETDATE())>=0 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=21  then '当前是采购定价阶段，系统不提供建议值'     
+      --               when DATEDIFF(day,a.bdate,GETDATE())+@tql>21 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=42  then  
+      --                   case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.ncxj is null then '系统建议值' else '原采购价'  end
+      --               when DATEDIFF(day,a.bdate,GETDATE())+@tql>42 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=56  then  
+      --                   case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.ncxj is null then '系统建议值' else '原采购价'  end 
+      --               when DATEDIFF(day,a.bdate,GETDATE())+@tql>56 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=70  then  
+      --                   case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.ncxj is null then '系统建议值' else '原采购价'  end  
+      --               when DATEDIFF(day,a.bdate,GETDATE())+@tql>70 and  convert(date,GETDATE())<=a.edate  then  
+      --                   case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.ncxj is null then '系统建议值' else '原采购价'  end 
+      --               when convert(date,GETDATE())>a.edate   then '出清价'
+      --             end
+      --         when ISNULL(a.nzxssl,0)>0  then 
+      --           case  
+      --               when DATEDIFF(day,a.bdate,GETDATE())>=0 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=21  then '当前是采购定价阶段，系统不提供建议值'
+      --               when  a.ndqkcsl*a.ngcsj*1.0/a.nzxssl<a.nsysj-10 and DATEDIFF(day,a.bdate,GETDATE())+@tql>21  then  case when a.ncxj is null then '系统建议值' else '原采购价' end  
+      --               when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10 and DATEDIFF(day,a.bdate,GETDATE())>=0 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=21
+      --                   then '当前是采购定价阶段，系统不提供建议值'  
+      --               when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())+@tql>21 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=42
+      --                 then case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.nCxj is null then '系统建议值' else '原采购价'   end
+      --               when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())+@tql>42 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=56
+      --                 then case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.nCxj is null then '系统建议值' else '原采购价'   end
+      --               when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())+@tql>56 and DATEDIFF(day,a.bdate,GETDATE())+@tql<=70
+      --                 then case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.nCxj is null then '系统建议值' else '原采购价'  end
+      --               when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and  DATEDIFF(day,a.bdate,GETDATE())+@tql>70 and   convert(date,GETDATE())<=a.edate 
+      --                 then case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.nCxj is null then '系统建议值' else '原采购价'   end
+      --               when convert(date,GETDATE())>a.edate   then '出清价'
+      --           end
+      --       end  
+      --   end sscource into #r1 from #r a
+      --   where 1=1  order by a.smonth,a.sfdbh,a.sspbh;
 
   select a.smonth,a.Bdate,a.edate,a.sFdbh,a.sfdmc,a.sspbh,a.sspmc,a.njj,a.nsj,a.ntjj,a.spsfs,a.sPlbh,b.sflmc,a.nQckc,a.ndqkcsl,a.nzxssl,
   a.STOP_INTO,a.nsysj,a.ngcsj,a.ncxj,a.nsjjd,a.nkcjd,a.sflag1,a.njg_raw,
@@ -1448,10 +1520,11 @@ select GETDATE() drq, a.smonth,a.sFdbh,a.sspbh,a.Bdate,a.edate,a.njj,a.nsj,a.nQc
 			     when a.nsj>100  and a.njg_cal%10>8.5
 					   then floor(a.njg_cal/10)*10+9
 			end
-  end ,case when a.sflag1='未完成' and  DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 18 and 21 
-    OR DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 19 and 42 
-    or  DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 53 and 56
-    or DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 67 and 76 then '需要准备下一阶段促销单' else '' end from #r2 a  
+  end ,case when a.sflag1='未完成' and isnull(a.ntjj,0)>0 and
+   ( ngcsj between 18 and 21 
+    OR ngcsj between 19 and 42 
+    or  ngcsj  between 53 and 56
+    or ngcsj  between 67 and 76 )then '需要准备下一阶段促销单' else '' end from #r2 a  
     order by 1;
 
   end;
@@ -1459,3 +1532,265 @@ else
   begin
     return
   end;
+
+/*
+报表主要作用是查看尾货处理计划每批次单品的当前状态及系统建议
+当前状态
+    状态开通,请核查 ：指门店单品在尾货计划里，但当前是非停购状态
+    已清退：指计划商品已停购且当前库存为0，认为已经清退完成；
+    负库存：指计划商品已停购且当前库存为负，可以认为已经清退完成，但为了区分，这里单独标注；
+    未完成：指计划商品已停购且当前库存大于0，仍为未完成状态；
+进程的四个阶段
+0-21天：采购处理阶段，系统不会给建议
+22-76天：系统建议阶段，系统会三次给出降价建议(提前4天)，如果最后促销价低于建议值会使用最后促销价
+76-90天：门店调价阶段
+90天以后：0.01元出清
+注意的是如果单品没有特进价，系统不给建议
+*/
+
+
+-------- V20220518
+USE [DappSource_Dw]
+GO
+/****** Object:  StoredProcedure [dbo].[TailCargo_Suggest]    Script Date: 2022/5/18 15:52:17 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		<Author,,Name>
+-- Create date: <Create Date,,>
+-- Description:	<Description,,>
+-- =============================================
+ALTER PROCEDURE [dbo].[TailCargo_Suggest] 
+	-- Add the parameters for the stored procedure here
+ 
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	-- Step 1 获取计划方案
+select * into #Tmp_Tail from dbo.Tmp_TailCargo a
+where a.sfdbh<>'015901' ;
+
+/*and ( DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 18 and 21 
+    OR DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 19 and 42 
+    or  DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 53 and 56
+    or DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 67 and 76) ;*/
+
+--Step  2 :如果不在出建议的日期，不执行计算
+if (select COUNT(1) from #Tmp_Tail)>0
+  begin
+      -- Step 3：取最早销售
+      select a.* into #Tmp_xs from DappSource_Dw.dbo.P_RETAIL_DETAIL_OUTPUT  a
+      where 1=1  and a.SALE_DATE>=(select min(Bdate) from #Tmp_Tail) and a.SALE_DATE<GETDATE();
+      -- Step 4:基础数据准备
+      select  a.sFdbh,a.sFdmc,a.sSpbh,a.sSpmc,a.smonth,a.Bdate,a.edate,
+      b.SHOP_SUPPLIER_CODE sgys,b.SHIFT_PRICE njj,b.RETAIL_PRICE nsj,
+      case when b.SEND_CLASS_T='01' then '配送' when b.SEND_CLASS_T='02' then '直送'
+      when b.SEND_CLASS_T='03' then '一步越库' when b.SEND_CLASS_T='04' then '二步越库' end spsfs,
+      b.stop_into,b.stop_sale,b.VALIDATE_FLAG,b.character_Type,b.min_purchase_qty nPsbzs
+      ,b.c_disuse_date,b.c_introduce_date,b.return_attribute,b.DisPlay_mode,a.ntjj  into #1 
+      from  #Tmp_Tail a 
+      left join DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT b on b.DEPT_CODE=a.sfdbh and b.ITEM_CODE=a.sspbh
+      where  1=1  and a.sFdbh<>'015901'  ;
+  
+      --Step 5:获取当前库存数据
+      -- drop table #Base_sp
+      select a.*,d.sort sPlbh into #Base_sp
+      from #1 a
+      left join   dbo.goods d on a.sSpbh=d.code
+      where 1=1  ; 
+
+      select   a.*,ISNULL(b.CURR_STOCK,0)  nkcsl into #Base_1 from #Base_sp a
+      left join DappSource_Dw.dbo.V_D_PRICE_AND_STOCK  b
+          on   a.sfdbh=b.STORE_CODE and a.sspbh=b.ITEM_CODE
+      where 1=1 ;
+
+
+
+      --Step 6 销售数据汇总 drop table #Tmp_xs1
+      select a.*,ceiling(datediff(HOUR,b.Bdate,a.sale_date)*1.0/240)*10 nxsqj into #Tmp_xs1
+      from DappSource_Dw.dbo.P_RETAIL_DETAIL_OUTPUT a
+      join #Base_1 b on a.SHOP_CODE=b.sfdbh and a.ITEM_CODE=b.sspbh
+          and a.sale_date>=b.Bdate and a.SALE_DATE<GETDATE()
+      where 1=1  ;
+
+      --Step 7: 促销信息 drop table #Tmp_cx
+
+      select sdh,sFdbh,sspbh,Bdate,Edate,nLsj,nCxj,TJD_NCXJ,TJD_NJJ,CreateDate,CloseDate,sZt,adate
+      into #Tmp_cx from  [122.147.10.200].DappSource.dbo.tmp_Promotion a
+      where  1=1 and CONVERT(date,a.Edate)>=(select min(Bdate) from #Tmp_Tail) ;
+
+      --Step 8: drop table #tmp_cxgx
+      select a.sFdbh,a.sspbh,a.smonth,b.bdate,b.edate,b.nlsj,b.ncxj,b.szt
+      ,b.adate,ROW_NUMBER()over(partition by a.smonth,a.sfdbh,a.sspbh
+      order by convert(date,b.aDate) desc) npm into #tmp_cxgx from #Base_1 a 
+      left join #Tmp_cx b on a.sFdbh=b.sfdbh and a.sspbh=b.sspbh 
+      -- and b.szt not in ('已结束','已作废')
+      and CONVERT(date,b.Edate)>=CONVERT(date,a.Bdate)   
+      where 1=1 ;
+
+    -- 使用历史日结库存 drop table   #Tmp_mdkc
+    select a.Bdate drq, a.sfdbh,a.sspbh,isnull(b.nkcsl,0) nkcsl into #Tmp_mdkc   
+    from   #Tmp_Tail a 
+    left join dbo.Tmp_Kclsb b on a.sfdbh=b.sfdbh and a.sspbh=b.sspbh and a.Bdate=b.drq;
+
+
+-- xs1 drop table #Tmp_xs_hz
+    select b.smonth, a.SHOP_CODE sFdbh,a.ITEM_CODE sSpbh,round((a.SUBTOTAL-a.DISCOUNT)*1.0/a.QTY,1) nxsjg,sum(a.QTY) nxssl
+    into #Tmp_xs_hz from
+    #Tmp_xs1 a, (select distinct  smonth,bdate,edate from #Tmp_Tail) b
+    where  1=1 and convert(date,a.sale_date)>=b.Bdate and convert(date,a.sale_date)<=b.edate 
+    -- and a.QTY>0 -- 0519 修改取全销售
+      group by b.smonth, a.SHOP_CODE  ,a.ITEM_CODE  ,round((a.SUBTOTAL-a.DISCOUNT)*1.0/a.QTY,1)
+    order by 1,2, 4 desc;
+
+
+    -- drop table #r
+    with x0 as(
+    select a.*,ROW_NUMBER()over(partition by a.smonth, a.sfdbh,a.sspbh order by a.nxssl desc) npm from #Tmp_xs_hz a
+    ),x1 as (select a.smonth, a.sFdbh,a.sSpbh,min(nxsjg) nzdxsj,sum(a.nxssl) nzxssl  from #Tmp_xs_hz  a group by a.smonth, a.sFdbh,a.sSpbh )
+    select a.smonth,a.Bdate,a.edate,a.sFdbh,a.sFdmc,a.sSpbh,a.sSpmc,a.njj,a.nsj,a.ntjj,a.spsfs,a.nPsbzs,
+    a.sPlbh,b.nkcsl nQckc,a.nkcsl ndqkcsl,d.nzxssl,a.STOP_INTO,a.DISPLAY_MODE,DATEDIFF(day,GETDATE(),a.edate) nsysj
+    ,DATEDIFF(DAY,a.Bdate,CONVERT(date,GETDATE()))+1 ngcsj,c.nxsjg nxsj_maxxl,d.nzdxsj
+    ,f.ncxj into #r  from #Base_1 a 
+    left join #Tmp_mdkc b on a.sFdbh=b.sfdbh and a.sSpbh=b.sspbh and a.Bdate=b.drq 
+    left  join x0 c on a.sfdbh=c.sfdbh and a.sSpbh=c.sSpbh and c.npm=1 and a.smonth=c.smonth  
+    left join x1 d on a.sFdbh=d.sFdbh and a.sSpbh=d.sSpbh  and a.smonth=d.smonth 
+    left join #tmp_cxgx f on a.sFdbh=f.sFdbh and a.sspbh=f.sspbh and f.npm=1
+    where 1=1 ;
+
+	    declare @tql int;
+      set @tql=4;
+      select a.*,ngcsj*1.0/(ngcsj+nsysj) nsjjd,case when isnull(ndqkcsl,0)<=0 then 1
+      else isnull(nzxssl,0)/(isnull(nzxssl,0)+isnull(ndqkcsl,0))  end nkcjd ,case when a.STOP_INTO='N' then '状态开通请核查'
+        when ISNULL(a.ndqkcsl,0)=0 and ( a.STOP_INTO<>'N'  or a.STOP_INTO is null)  then '已清退'
+        when ISNULL(a.ndqkcsl,0)<0 and ( a.STOP_INTO<>'N' or a.STOP_INTO is null)  then '负库存'
+        when ISNULL(a.ndqkcsl,0)>0 and ( a.STOP_INTO<>'N' or a.STOP_INTO is null)   then '未完成' end sflag1,
+        case  when  ISNULL(a.ndqkcsl,0)>0 and ( a.STOP_INTO<>'N'  or a.STOP_INTO is null) then 
+            case  
+                when ISNULL(a.nzxssl,0)<=0 then 
+                  case
+                    when ngcsj-1+@tql>=0 and ngcsj-1+@tql<21  then CONVERT(money,'')     
+                    when ngcsj-1+@tql>=21 and ngcsj-1+@tql<42  then  
+                        case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.ncxj is null then a.nsj*0.7 else a.nCxj  end
+                    when ngcsj-1+@tql>=42 and ngcsj-1+@tql<56  then  
+                        case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.ncxj is null then a.nsj*0.5 else a.nCxj  end 
+                    when ngcsj-1+@tql>=56 and ngcsj-1+@tql<70  then  
+                        case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.ncxj is null then a.nsj*0.3 else a.nCxj  end  
+                    when ngcsj-1+@tql>=70 and  convert(date,GETDATE())<=a.edate  then  
+                        case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.ncxj is null then a.nsj*0.2 else a.nCxj  end 
+                    when convert(date,GETDATE())>a.edate   then 0.01
+                  end
+              when ISNULL(a.nzxssl,0)>0  then 
+                case  when  a.ndqkcsl*a.ngcsj*1.0/a.nzxssl<a.nsysj-10  then  case when a.ncxj is null then a.nsj*0.8 else a.ncxj end 
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10 and ngcsj-1+@tql>=0 and ngcsj-1+@tql<21
+                        then CONVERT(money,'')
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=21 and ngcsj-1+@tql<42
+                      then case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.nCxj is null then a.nsj*0.7  else  a.nCxj   end
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=42 and ngcsj-1+@tql<56
+                      then case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.nCxj is null then a.nsj*0.5  else  a.nCxj   end
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=56 and ngcsj-1+@tql<70
+                      then case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.nCxj is null then a.nsj*0.3  else  a.nCxj   end
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=70 and   convert(date,GETDATE())<=a.edate 
+                      then case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.nCxj is null then a.nsj*0.2  else  a.nCxj   end
+                    when convert(date,GETDATE())>a.edate   then 0.01
+                end
+            end  
+        end njg_raw,  case  when  ISNULL(a.ndqkcsl,0)>0 and ( a.STOP_INTO<>'N'  or a.STOP_INTO is null) then 
+            case  
+                when ISNULL(a.nzxssl,0)<=0 then 
+                  case
+                    when ngcsj-1+@tql>=0 and ngcsj-1+@tql<21  then '当前是采购定价阶段系统不提供建议值'     
+                    when ngcsj-1+@tql>=21 and ngcsj-1+@tql<42  then  
+                        case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.ncxj is null then '系统建议值' else '原采购价'  end
+                    when ngcsj-1+@tql>=42 and ngcsj-1+@tql<56  then  
+                        case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.ncxj is null then '系统建议值' else '原采购价'  end 
+                    when ngcsj-1+@tql>=56 and ngcsj-1+@tql<70  then  
+                        case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.ncxj is null then '系统建议值' else '原采购价'  end  
+                    when ngcsj-1+@tql>=70 and  convert(date,GETDATE())<=a.edate  then  
+                        case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.ncxj is null then '系统建议值' else '原采购价'  end 
+                    when convert(date,GETDATE())>a.edate   then '出清价'
+                  end
+              when ISNULL(a.nzxssl,0)>0  then 
+                case  
+                    when ngcsj-1+@tql>=0 and ngcsj-1+@tql<21  then '当前是采购定价阶段系统不提供建议值'
+                    when  a.ndqkcsl*a.ngcsj*1.0/a.nzxssl<a.nsysj-10    then  case when a.ncxj is null then '系统建议值' else '原采购价' end  
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10 and ngcsj-1+@tql>=0 and ngcsj-1+@tql<21
+                        then '当前是采购定价阶段系统不提供建议值'  
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=21 and ngcsj-1+@tql<42
+                      then case  when ISNULL(a.ncxj,0)>=a.nsj*0.73 or a.nCxj is null then '系统建议值' else '原采购价'   end
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=42 and ngcsj-1+@tql<56
+                      then case  when ISNULL(a.ncxj,0)>=a.nsj*0.53 or a.nCxj is null then '系统建议值' else '原采购价'   end
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=56 and ngcsj-1+@tql<70
+                      then case  when ISNULL(a.ncxj,0)>=a.nsj*0.33 or a.nCxj is null then '系统建议值' else '原采购价'  end
+                    when   a.ndqkcsl*a.ngcsj*1.0/a.nzxssl>=a.nsysj-10  and ngcsj-1+@tql>=70 and   convert(date,GETDATE())<=a.edate 
+                      then case  when ISNULL(a.ncxj,0)>=a.nsj*0.23 or a.nCxj is null then '系统建议值' else '原采购价'   end
+                    when convert(date,GETDATE())>a.edate   then '出清价'
+                end
+            end  
+        end sscource into #r1 from #r a
+        where 1=1  ;
+
+  select a.smonth,a.Bdate,a.edate,a.sFdbh,a.sfdmc,a.sspbh,a.sspmc,a.njj,a.nsj,a.ntjj,a.spsfs,a.sPlbh,b.sflmc,a.nQckc,a.ndqkcsl,a.nzxssl,
+  a.STOP_INTO,a.nsysj,a.ngcsj-1,a.ncxj,a.nsjjd,a.nkcjd,a.sflag1,a.njg_raw,
+  case when sflag1<>'未完成' then ''
+   -- when isnull(a.ntjj,0)<=0 then '无特进价,不出建议'
+    else   sscource end sscource,
+  case
+   -- when isnull(a.nTjj,0)<=0 then convert(money,NULL)
+    when  sscource='出清价'   then 0.01  
+    when sscource<>'出清价'   then CAST(ROUND(a.njg_raw,2) as numeric(8,2)) end njg_cal  into #r2 from #r1 a 
+  left join DappSource_Dw.dbo.tmp_spflb b on a.sPlbh=b.sflbh where smonth is not null  ;
+  
+    delete  Tmp_TailCargo_Suggest where drq=CONVERT(date,getdate());
+	insert into Tmp_TailCargo_Suggest(drq,sMonth,sFdbh,sSpbh,Bdate,Edate,nPsj,nLsj,nQckc,nDqkc,nZxssl,ndays_already,nDays_remaining,sZt,sstage,
+nsjjd,nkccljd,nCxj_last,ncxj_suggest,sSftj)
+  select GETDATE() drq, a.smonth,a.sFdbh,a.sspbh,a.Bdate,a.edate,a.njj,a.nsj,a.nQckc,a.ndqkcsl,a.nzxssl,
+  a.ngcsj,a.nsysj,sflag1,sscource,a.nsjjd,a.nkcjd,a.ncxj,
+  case  when sscource in ('当前是采购定价阶段系统不提供建议值','无特进价,不出建议') then convert(money,NULL)
+        when  sscource   not in ('系统建议值','出清价','无特进价,不出建议','当前是采购定价阶段系统不提供建议值','原采购价')
+            then CAST(ROUND(a.njg_cal,2) as numeric(8,2))
+        when  sscource ='出清价' then convert(numeric(8,2),0.01)
+		when sscource='原采购价' then   CAST(ROUND(a.njg_cal,2) as numeric(8,2))
+        when sscource ='系统建议值'  then   
+			case  when round(a.njg_cal,2)=0.01 then 0.01
+			when a.nsj<=10 and  round(a.njg_cal%1,1) in (0.10,0.40,0.70) then round(a.njg_cal,1)+0.1 
+			     when a.nsj<=10 and  round(a.njg_cal%1,1) not in (0.10,0.40,0.70) then CAST(ROUND(a.njg_cal,1) as numeric(8,2))
+			     when a.nsj>10 and a.nsj<=100 and  a.njg_cal%1 =0 and a.njg_cal%10<=5
+					   then floor(a.njg_cal/10)*10+5
+				 when a.nsj>10 and a.nsj<=100 and  a.njg_cal%1 =0 and a.njg_cal%10 between 6 and 8.5
+					   then floor(a.njg_cal/10)*10+8
+			     when a.nsj>10 and a.nsj<=100 and  a.njg_cal%1 =0 and a.njg_cal%10>8.5
+					   then a.njg_cal 
+				 -- xiaoshu
+				 when a.nsj>10 and a.nsj<=100 and  a.njg_cal%1 <>0 and a.njg_cal%1<=0.5
+					   then floor(a.njg_cal/1)+0.5
+				 when a.nsj>10 and a.nsj<=100 and  a.njg_cal%1 <>0 and a.njg_cal%1 between 0.51 and 0.85
+					   then floor(a.njg_cal/1)+0.8
+			    when a.nsj>10 and a.nsj<=100 and a.njg_cal%1 <>0 and a.njg_cal%1 >0.85
+					   then floor(a.njg_cal/1)+0.9	 
+				 when a.nsj>100   and a.njg_cal%10<=5
+					   then floor(a.njg_cal/10)*10+5
+				 when a.nsj>100  and a.njg_cal%10 between 5.01 and 8.5
+					   then floor(a.njg_cal/10)*10+8
+			     when a.nsj>100  and a.njg_cal%10>8.5
+					   then floor(a.njg_cal/10)*10+9
+			end
+  end ,case
+   --  when a.sflag1='未完成' and ISNULL(a.nTjj,0)<=0 then '无特进价不出调价建议'  
+    when a.sflag1='未完成'    and ( DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 17 and 20 
+    OR DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 38 and 41 
+    or  DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 52 and 55
+    or DATEDIFF(day,convert(date,a.Bdate),CONVERT(date,getdate())) between 66 and 69) then '需要准备下一阶段促销单' else '' end from #r2 a  
+    order by 1;
+
+
+
+  end;
+else 
+  begin
+    return
+  end;
+END

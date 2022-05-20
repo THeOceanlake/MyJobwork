@@ -1022,8 +1022,53 @@ left join tmp_spflb d on c.sort=d.sflbh
 where 1=1  and (( c.sort>'20' and c.sort<'40') or (
 LEFT(c.sort,4) in ('1105','1307','1309','1406') ))
 and LEFT(c.sort,4)<>'2201'
+
+
+
+2022-05-12
+1 美宜佳单据更新
+2 报表数据结构配置
+3 嘉荣90天方案报表配置-
+4 嘉荣文创店 砂锅 规划数更改
+  update DAppResult.dbo.Input_Plgh set nghs=0,daddtime=GETDATE() 
+  where sfdbh='018425' and splbh like '370102%';
+5 
+6、
+
+2022-05-16
+1、包装数调整商品
+select distinct sFdbh,sSpbh into #1 from DappSource_Dw.dbo.Tmp_TailCargo a 
+
+select a.sfdbh,a.sspbh,a.sspmc,a.sfl,a.njj,a.nsj,a.spsfs,d.scgqy,a.nCgbzs,a.npsbzs,(a.nsj-a.njj)*1.0/a.nsj,
+a.nkc,a.nrjxl,a.nzzts,a.nbzzzts
+ from DappSource_Dw.dbo.tmp_mdspzzyy a 
+left join DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT b on a.sfdbh=b.DEPT_CODE and a.sspbh=b.ITEM_CODE
+left join #1 c on a.sfdbh=c.sFdbh and a.sspbh=c.sSpbh
+left join DappSource_Dw.dbo.Goods d on a.sspbh=d.code
+where a.drq=CONVERT(date,GETDATE()) and a.syy='配送包装数过大'
+and a.npsbzs<a.nCgbzs and a.nDhsl=b.MIN_PURCHASE_QTY
+and c.sSpbh is null ; 
+
+
+2、维联商品
  
 
- 
+--- 2022-05-18
+1、添加销售信息
+select * from DappSource_Dw.dbo.Tmp_TailCargo a
+join   DappSource_Dw.dbo.Tmp_dr_tailcargo05 b on a.sFdbh=b.机构代码 and a.sSpbh=b.商品编码 
+where 1=1
 
- 
+update a set a.sgys=b.供应商编码,a.sgysmc=b.供应商名称,a.ssfkt=b.是否可退  from DappSource_Dw.dbo.Tmp_TailCargo a
+join   DappSource_Dw.dbo.Tmp_dr_tailcargo05 b on a.sFdbh=b.机构代码 and a.sSpbh=b.商品编码 
+where 1=1
+
+2、90天尾货，不再根据特进价做筛选条件，不可退的全部需要出建议价
+
+-- 2022-05-19
+1 嘉荣90天方案报表配置  标签不带符号，否则在报表的时候会出错
+
+
+-- 2022-05-20 
+1 select * from tmp_cgsp_hb where sFdbh='粤11741' and  sSpbh='2049182' 
+

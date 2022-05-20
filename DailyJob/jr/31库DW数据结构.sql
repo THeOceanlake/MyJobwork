@@ -923,13 +923,13 @@ Create Table Tmp_TailCargo_Suggest(
 	nDqkc money,-- 当前库存数量
 	nZxssl money,--总销售数量
 	nDays_remaining int,-- 剩余时间长度
-	sZt varchar(20) not null,-- 当前处于的状态，已清退，未完成，已恢复采购，负库存等
-	sstage varchar(20),--判断的时间，既采购定价，系统建议
+	sZt varchar(100) not null,-- 当前处于的状态，已清退，未完成，已恢复采购，负库存等
+	sstage varchar(200),--判断的时间，既采购定价，系统建议
 	ndays_already int not null,--当前日期距开始时间的天数
-	nsjjjd money,-- 时间进度
+	nsjjd money,-- 时间进度
 	nkccljd money,--库存处理进度
 	nCxj_last money,--最后促销价，至当前执行的或当前无计划，已经结束的最后的促销价
     ncxj_suggest money ,-- 建议价
-	sSftj varchar(50),-- 是否需要调价进入下一阶段
+	sSftj varchar(300),-- 是否需要调价进入下一阶段
 	PRIMARY KEY(drq,sMonth,sFdbh,sSpbh)
 );

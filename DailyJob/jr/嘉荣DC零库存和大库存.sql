@@ -237,4 +237,41 @@ where 1=1 ;
   select CONVERT(date,getdate()),a.sSpbh,a.sSpmc,a.sFlbh,a.sGys,a.nZdsl,a.nZgsl,a.nCgbzs,a.sPsfs,a.sZdbh,a.nSl,a.dYhrq,a.dDhrq,a.nCgsl,
   a.nDhsl,a.nzzts,a.syy,a.nrjxl from #tmp_dcspzzyy a;
 
+
+
+ -- 零库存页面
+ select  #result
+
+SELECT convert(varchar,drq) 日期 ,
+  max( case when syy='物流中心无货未送	' then nzb else 0 end) as '物流中心无货未送	',
+	max( case when syy='越库供应商未送货' then nzb else 0 end) as '越库供应商未送货',
+	max( case when syy='人工未下单' then nzb else 0 end) as '人工未下单',
+	max( case when syy='暂不补货' then nzb else 0 end) as '暂不补货',
+	max( case when syy='直送供应商未送货' then nzb else 0 end) as '直送供应商未送货',
+	max( case when syy='新品' then nzb else 0 end) as '新品',
+	max( case when syy='物流中心有货未送' then nzb else 0 end) as '物流中心有货未送',
+	max( case when syy='系统定额不足' then nzb else 0 end) as '系统定额不足',
+	max( case when syy='未达起订量' then nzb else 0 end) as '未达起订量',
+	max( case when syy='退配' then nzb else 0 end) as '退配',
+	max( case when syy='调出' then nzb else 0 end) as '调出',
+  max( case when syy='DC无库位' then nzb else 0 end) as 'DC无库位',
+  max( case when syy='突发销售' then nzb else 0 end) as '突发销售',
+  max( case when syy='人工订货不足' then nzb else 0 end) as '人工订货不足',
+  max( case when syy='人工减量或删单' then nzb else 0 end) as '人工减量或删单',
+  max( case when syy='损溢' then nzb else 0 end) as '损溢',
+  max( case when syy='越库供应商送货不足' then nzb else 0 end) as '越库供应商送货不足',
+  sum(商品数或金额) 总数
+	FROM #result 
+	group by  drq
+	order by drq 
+
+   
+	 
+  select '','全部' union
+select syy,syy from TMP_MDLKCYY_QUERY_SYY#IP# 
+where syy in (物流中心无货未送	,越库供应商未送货	,暂不补货	,新品,直送供应商未送货,人工未下单	,物流中心有货未送,DC无库位,未达起订量,
+系统定额不足,退配	,突发销售,其他,人工订货不足,人工减量或删单,调出,损溢,越库供应商送货不足)
+物流中心无货未送	,越库供应商未送货	,暂不补货	,新品,直送供应商未送货,人工未下单	,物流中心有货未送,DC无库位,未达起订量,
+系统定额不足,退配	,突发销售,其他,人工订货不足,人工减量或删单,调出,损溢,越库供应商送货不足
+
 		  
