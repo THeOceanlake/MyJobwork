@@ -18,6 +18,8 @@ select * from dbo.Tmp_fdb_sx
 
 --  6 门店物流线路表
 select *,sXl from dbo.Tmp_fdb_FB
+ left join dbo.Tmp_fdb_sx  d on a.sfdbh=d.sfdbh and case when left(a.sFl,2)='06' then '烘焙' when left(a.sFl,2)='15' then '冷藏' 
+when left(a.sFl,2)='33' then '槟榔'  end =d.slx
 
 -- 7  门店基本信息+新增 城市，大区 ，商圈
 select * from dbo.Tmp_FDB
@@ -29,3 +31,13 @@ select * from Tmp_Kcb;
 
 -- 10 取模板商品
 select * from dbo.Tmp_mbsp ;
+
+
+
+-------------  以下是BI报表参数
+select '','全部' union
+select distinct slx,slx from   dappsource.dbo.Tmp_fdb_sx 
+
+
+select CONVERT(date,''),'全部' union
+select distinct dsxdate,convert(varchar(30),dsxdate,112) from   dappsource.dbo.Tmp_fdb_sx 

@@ -74,4 +74,11 @@ select '逆向物流',CONVERT(varchar(30),a.AddTime,112)+'期',a.AddTime, a.Edat
 [122.147.10.200].DAppSource.dbo.BadStock_Notice_Items b ,dbo.goods c 
 where a.sFdbh ='018425' and a.AddTime>CONVERT(date,getdate()-7) and b.sspbh=c.code
 and a.sDh=b.sDh ; 
- 
+
+insert into Tmp_Measures_list(Measure_Name,Measure_batch,CreateTime,enddate,sFdbh,sSpbh,sSpmc,sAdvice_raw,sAdvice_result)
+select '逆向物流',CONVERT(varchar(30),a.AddTime,112)+'期',a.AddTime, a.Edate,a.sFdbh,b.sSpbh,c.name,a.sLx,
+case when b.DcTime IS not null then a.sLx else '' end   from  
+[122.147.10.200].DAppSource.dbo.BadStock_Notice a,
+[122.147.10.200].DAppSource.dbo.BadStock_Notice_Items b ,dbo.goods c 
+where a.sFdbh ='018425' and a.AddTime>CONVERT(date,getdate()-7) and b.sspbh=c.code
+and a.sDh=b.sDh and   CONVERT(varchar(30),a.AddTime,112)+'期' not in (select distinct Measure_batch from Tmp_Measures_list  )  ; 

@@ -801,7 +801,7 @@ and b.nYhsl>0;
 
 update a set a.dzhyhrq=b.dYhrq,a.syy='物流中心送货不足'  from  #mdlkcsp a 
 join  #Tmp_dh_cal b on a.sFdbh=b.sfdbh and a.sSpbh=b.sSpbh and b.npm_cal=1 
-where 1=1  and   len(a.syy)=0  and b.nShsl>0 and  b.nYhsl*1.0/b.nShsl<0.9 and a.sPsfs<>'直送' ;
+where 1=1  and   len(a.syy)=0  and b.nShsl>0 and  b.nShsl*1.0/b.nYhsl<0.9 and a.sPsfs<>'直送' ;
 -- 更新物流有货未配 drop table   #dckc
 select distinct a.sSpbh into #dckc from #mdlkcsp a 
 join [122.147.10.200].DAppSource.dbo.T_Dckclsb b
@@ -852,7 +852,7 @@ and  a.sZdbh=1  and b.nYhsl_raw=b.nYhsl  and b.nYhsl_raw>=b.ncgsl_old ;
  delete from Dappsource_DW.dbo.TMP_MDLKCYY where drq=convert(date,GETDATE()); 
  insert into Dappsource_DW.dbo.TMP_MDLKCYY(drq,sfdbh,sspbh,sspmc,sfl,nZdsl,nZgsl,szdbh,ssfkj,spsfs,syy,dzhyhrq,nrjxl,nrjxse,nsl)
  select convert(date,GETDATE()) drq,a.sFdbh,a.sSpbh,a.sSpmc,a.splbh,a.nZdsl ,a.nZgsl ,a.sZdbh,'1' sSfkj,a.sPsfs,a.syy,
-  a.dzhyhrq,a.nRjxl,a.nRjxse,a.nsl   from  #mdlkcsp a ;
+  a.dzhyhrq,a.nRjxl,a.nRjxse,a.nsl from  #mdlkcsp a ;
 
  
 -- 第二部分 门店大库存

@@ -1072,3 +1072,75 @@ where 1=1
 -- 2022-05-20 
 1 select * from tmp_cgsp_hb where sFdbh='粤11741' and  sSpbh='2049182' 
 
+-- 2022-05-23
+
+-- 
+
+-- 
+select  * into #r_dpzb from [122.147.10.202].dappresult.dbo.r_dpzb where sfdbh='018425';
+
+-- drop table #2
+select CONVERT(date,a.dsj) dsj,a.sfdbh,  b.sspbh,SUM(b.nsl) nsl  into #2
+from [122.147.10.202].DAppStore.dbo.tmp_jcb a 
+join [122.147.10.202].DAppStore.dbo.tmp_jcmxb b 
+on  a.sjcbh=b.sjcbh and  a.sfdbh=b.sfdbh
+where 1=1 and a.sfdbh='018425' and a.dsj>CONVERT(date,GETDATE()-180)
+group by CONVERT(date,a.dsj),a.sfdbh, b.sspbh;
+
+-- drop table #21
+select sfdbh,sspbh,max(a.dsj) drq,sum(nsl) nsl into #21 from #2  a where nsl>0
+group by  sfdbh,sspbh ;
+
+select a.DEPT_CODE,a.ITEM_CODE,d.name,d.sort,e.sflmc,case when a.SEND_CLASS_T='01' then '配送' when a.SEND_CLASS_T='02' then '直送'
+when a.SEND_CLASS_T='03' then '一步越库' when a.SEND_CLASS_T='04' then '二步越库' end spsfs,d.scgqy,a.STOP_INTO,
+a.RETURN_ATTRIBUTE,a.SHIFT_PRICE,a.RETAIL_PRICE
+,(a.RETAIL_PRICE-a.SHIFT_PRICE)*1.0/a.RETAIL_PRICE,b.CURR_STOCK,f.nrjxl_de,f.nxssl,f.nxsje,f.nml,g.drq from DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT a
+join DappSource_Dw.dbo.V_D_PRICE_AND_STOCK b on a.DEPT_CODE=b.STORE_CODE and a.ITEM_CODE=b.ITEM_CODE
+left join (select distinct sfdbh, sspbh from DappSource_Dw.dbo.Tmp_Measures_list) c on a.DEPT_CODE=c.sfdbh and a.ITEM_CODE=c.sspbh
+join DappSource_Dw.dbo.goods d on a.ITEM_CODE=d.code
+left join DappSource_Dw.dbo.tmp_spflb e on d.sort=e.sflbh
+left join #r_dpzb f on a.DEPT_CODE=f.sfdbh and a.ITEM_CODE=f.sspbh
+left join #21  g on a.DEPT_CODE=g.sfdbh and a.ITEM_CODE=g.sspbh 
+where 1=1 and a.DEPT_CODE='018425' and  a.STOP_INTO<>'N' and b.CURR_STOCK>0 
+and c.sspbh  is null and   a.VALIDATE_FLAG='Y' and a.CHARACTER_TYPE='N' and
+(( d.sort>'20' and d.sort<'40') or (
+LEFT(d.sort,4) in ('1105','1307','1406') ))
+and LEFT(d.sort,4)<>'2201' ;
+
+select * from #2  where sspbh='23040582'
+
+
+-----------
+select *  into #1 from dbo.TMP_MDLKCYY a where a.drq=CONVERT(date,GETDATE());
+
+ select  d.slx,d.dsxdate,a.sFdbh,sum(a.nRjxse) nrjxse,COUNT(1) nsps  into #2 from  dbo.TMP_MDLKCYY a 
+ left join dbo.Tmp_fdb_sx  d on a.sfdbh=d.sfdbh and case when left(a.sFl,2)='06' then '烘焙' when left(a.sFl,2)='15' then '冷藏' 
+when left(a.sFl,2)='33' then '槟榔'  end =d.slx
+ where  1=1 and a.nsl=0 and  a.drq=CONVERT(date,GETDATE() )  and d.slx='烘焙'  and d.dsxdate='2022-05-08 00:00:00.000'
+ group by d.slx,d.dsxdate,a.sFdbh
+
+ select slx,dsxdate,COUNT(1) nfds,90 上线总批次门店数,sum(nrjxse) nzrj,AVG(nrjxse),sum(nsps),AVG(nsps) from #2 
+ group by slx,dsxdate ;
+
+------------------------
+ select a.sFDBH,a.sFDMC,a.sFDLX,a.sPsZt,d.slx,d.dsxdate into #Tmp_FDfw
+from dbo.Tmp_FDB  a left join dbo.Tmp_Fdb_sx d on a.sfdbh=d.sfdbh  
+where (binglang_state=1 or  lengcang_state=1 or  hongbei_state=1);
+
+-- drop table #tmp_zdbhspfw
+select a.sFdbh,b.sFDMC,b.sFDLX,a.sSpbh,a.sPslx,a.sSfkj,c.nJj into #tmp_zdbhspfw 
+from dbo.Sys_GoodsConfig a,#Tmp_FDfw b,tmp_spb  c 
+where a.sSfkj='1' and  a.sFdbh=b.sFDBH and a.sFdbh=c.sFdbh  and a.sSpbh=c.sSpbh
+and  b.slx='烘焙' and b.dsxdate='2022-05-08';
+ 
+-- Step 2： 总销售额和总商品数
+select  DATEADD(day,1,CONVERT(date,a.djssj)) drq, count(1) nsps , sum(a.nRjxl_De) nrjxl,sum(a.nRjxl_De*b.nJj) nrjxse
+from  dbo.Sys_GoodsConfig_his  a
+ join #tmp_zdbhspfw b  on a.sFdbh=b.sFdbh and a.sspbh=b.sspbh
+where  1=1 and CONVERT(date,a.djssj)=CONVERT(date,GETDATE()-1)
+group by DATEADD(day,1,CONVERT(date,a.djssj));
+
+-- 畅缺率表
+ SELECT srq,CONVERT(MONEY,SUM(ncxqhs))/SUM(ncxsps) FROM Source_His.dbo.Shop_Cqlnew 
+     WHERE sfdbh='018425' AND srq>='2022-05-20'
+     GROUP BY srq;

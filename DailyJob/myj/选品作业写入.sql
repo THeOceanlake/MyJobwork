@@ -13,13 +13,15 @@
 	select 'myj',CONVERT(varchar(10),getdate(),121),CONVERT(varchar(10),getdate(),121),
 	CONVERT(varchar(10),getdate(),121),CONVERT(varchar(10),getdate(),121),'0000',0,'0110',
 	0,0,'flbh='+a.sFlbh from #sflb_1   a where sFlbh='339901'
-
+	-- drop  table #sfd
 	   	with x0 as (
 		select  a.EndDate,count(distinct a.sFdbh) nfds  from R_Dpzb a group by a.EndDate)
 		,x1 as (select  max(a.EndDate) EndDate   from x0  a )
-		select distinct  top 10 a.sFdbh, a.EndDate into #sfd  from  R_Dpzb a where  a.EndDate in ( select EndDate from x1 );
+		select distinct  top 10 a.sFdbh, a.EndDate into #sfd  from  R_Dpzb a where  a.EndDate in ( select EndDate from x1 )
+		and  a.sFdbh  in (select    sFDBH from dbo.Tmp_FDB where binglang_state  =1 or  lengcang_state=1 or  hongbei_state=1);
 
 	 	insert into  [Applinker].DApplication.dbo.Task_Process(userid,beginDate,endDate,databegindate,dataenddate,shopId,stat,tasktopicId,flag,laststat,params) 
-	select top 10 'myj',CONVERT(varchar(10),getdate(),121),CONVERT(varchar(10),getdate(),121),
+	select   'myj',CONVERT(varchar(10),getdate(),121),CONVERT(varchar(10),getdate(),121),
 	CONVERT(varchar(10),getdate(),121),CONVERT(varchar(10),getdate(),121),b.sfdbh,0,'0112',0,0,
-	'flbh='+a.sFlbh from #sflb_1  a,#sfd b  where 1=1 and a.sflbh='339901';
+	'flbh='+a.sFlbh from #sflb_1  a,#sfd b  where 1=1   
+	;
