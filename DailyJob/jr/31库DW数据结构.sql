@@ -933,3 +933,101 @@ Create Table Tmp_TailCargo_Suggest(
 	sSftj varchar(300),-- 是否需要调价进入下一阶段
 	PRIMARY KEY(drq,sMonth,sFdbh,sSpbh)
 );
+
+------ 记录每天停购有库存商品明细，评估处理速度
+Create table Tmp_StopList(
+	drq date not null,-- 记录日期，与日结库存同步
+	sFdbh Varchar(20) not null,-- 分店
+	sSpbh Varchar(300) not null,
+	STOP_INTO varchar(10),
+	nKcsl  money,
+	nkcje  money,
+	PRIMARY KEY (drq,sFdbh,sspbh)
+);
+/*
+delete from Tmp_StopList where drq=CONVERT(date,GETDATE()-1);
+  insert into Tmp_StopList(drq,sFdbh,sSpbh,STOP_INTO,nKcsl,nKcje)
+  select b.drq,b.sfdbh,b.sspbh,a.STOP_INTO,b.nkcsl,b.nKcje from
+   DappSource_Dw.dbo.tmp_kclsb  b  
+  left join   DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT a on a.DEPT_CODE=b.sfdbh and a.ITEM_CODE=b.sspbh
+  join DappSource_Dw.dbo.goods c on a.ITEM_CODE=c.code 
+  where 1=1 and   b.drq=CONVERT(date,GETDATE()-1) and a.Dept_code='018425' and ( a.STOP_INTO<>'N'  or a.STOP_INTO is null or a.DEPT_CODE is null    )
+   and a.CHARACTER_TYPE='N' and b.nkcsl>0 and a.c_introduce_date is not null  and  (( c.sort>'20' and c.sort<'40') or (
+  LEFT(c.sort,4) in ('1105','1307','1406') ))
+and LEFT(c.sort,4)<>'2201' ;
+*/
+
+
+------ 记录每天的因为各种设置而暂不自动补货的门店商品明细
+Create Table Tmp_Autosp_Exlist(
+	drq date not null,
+	sFdbh Varchar(20) not null,
+	sSpbh Varchar(20) not null,
+	sFlbh varchar(20) not null,
+	sGys varchar(20) not null,
+	sTag varchar(50) not null,
+	PRIMARY Key(drq,sfdbh,sspbh,sTag)
+);
+/*
+select a.sfdbh,b.sflbh into #zdbhfl
+from [122.147.10.200].dappsource.dbo.sys_deliverysort a,
+ DappSource_Dw.dbo.tmp_spflb b where 1=1 and ((  b.sflbh like a.sflbh+'%' and LEN(b.sflbh)=8)
+or ( left(b.sflbh,4) in ('1309','2103','2104')) );
+
+-- drop table #Base_sp
+select a.DEPT_CODE sFdbh,a.ITEM_CODE sSpbh,d.name sspmc,d.sort sPlbh,a.SHOP_SUPPLIER_CODE sgys ,
+case when a.SEND_CLASS_T='01' then '配送' when a.SEND_CLASS_T='02' then '直送'
+when a.SEND_CLASS_T='03' then '一步越库' when a.SEND_CLASS_T='04' then '二步越库' end spsfs
+into #Base_sp
+from DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT a
+join DappSource_Dw.dbo.goods d on a.ITEM_CODE=d.code
+join #zdbhfl c on a.DEPT_CODE=c.sfdbh and d.sort=c.sflbh 
+where 1=1 and      a.STOP_INTO='N'
+ and a.STOP_SALE='N' and a.VALIDATE_FLAG='Y' and a.CHARACTER_TYPE='N' and (( d.sort>'20' and d.sort<'40') or (
+LEFT(d.sort,4) in ('1105','1307','1406') ))  
+and LEFT(d.sort,4)<>'2201';
+
+select * into #tmp_exgys from [122.147.10.200].DAppSource.dbo.Sys_DeliveryGysEx
+
+
+select * into #tmp_exsfl from [122.147.10.200].DAppSource.dbo.Sys_DeliverySortEx
+
+select * into #tmp_exsp from [122.147.10.200].DAppSource.dbo.Sys_DeliverySpEx 
+where  begindate<GETDATE() and enddate>GETDATE() and nFlag=1 ;
+
+select * into #tmp_exsp_cold from [122.147.10.200].DAppSource.dbo.Sys_DeliverySpEx_cold 
+where  begindate<GETDATE() and enddate>GETDATE() and nFlag=1 ;
+
+select * into #Tmp_tihi from [122.147.10.200].DAppSource.dbo.t_tihi;
+
+
+select * into #Tmp_bhfd from [122.147.10.200].DAppSource.dbo.Sys_DeliveryFd;
+
+-- 更新
+insert into DappSource_Dw.dbo.Tmp_Autosp_Exlist(drq,sFdbh,sSpbh,sFlbh,sGys,sTag)
+select CONVERT(date,GETDATE()) drq,a.sFdbh,a.sSpbh,a.sPlbh,a.sgys,'暂不下单供应商' from #Base_sp a 
+join #tmp_exgys b on a.sgys=b.sgys  where 1=1;
+
+select CONVERT(date,GETDATE()) drq,a.sFdbh,a.sSpbh,a.sPlbh,a.sgys,'暂不下单分类'  from #Base_sp a 
+join #tmp_exsfl b on a.sFdbh=b.sfdbh and  a.sPlbh like b.sflbh+'%'  where 1=1;
+
+select CONVERT(date,GETDATE()) drq,a.sFdbh,a.sSpbh,a.sPlbh,a.sgys,'暂不下单商品' from #Base_sp a 
+join #tmp_exsp b on a.sSpbh=b.sspbh   where 1=1;
+
+select CONVERT(date,GETDATE()) drq,a.sFdbh,a.sSpbh,a.sPlbh,a.sgys,'暂不下单商品' from #Base_sp a 
+join #tmp_exsp_cold b on a.sSpbh=b.sspbh   where 1=1;
+
+
+select CONVERT(date,GETDATE()) drq,a.sFdbh,a.sSpbh,a.sPlbh,a.sgys,'无库位商品'  from #Base_sp a
+left join #5 b on a.sspbh=b.SIZE_DESC
+where 1=1  and a.sPsfs='配送' and b.SIZE_DESC is null ;
+
+select CONVERT(date,GETDATE()) drq,a.sFdbh,a.sSpbh,a.sPlbh,a.sgys,'暂不下单门店'  from 
+#Base_sp a  left join #Tmp_bhfd b on a.sFdbh=b.sfdbh
+where 1=1 and b.sfdbh is null;
+*/
+
+
+ 
+
+

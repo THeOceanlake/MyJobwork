@@ -76,7 +76,7 @@ select distinct a.sFdbh,a.sSpbh,b.drq into #Base_sp from dbo.R_Dpzb a ,#tmp_date
    left join #tmp_kcgl b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh
    left join #Tmp_xsgl c on a.sFdbh=c.sFdbh and a.sSpbh=c.sSpbh
    where 1=1 and a.sFdbh='012' order by a.nRjxl_De desc
-    
+
      
 
 

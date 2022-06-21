@@ -156,3 +156,17 @@ LEFT JOIN [122.147.10.202].dbo.R_TtSpGl_Clfs c on a.sAdvice_result = c.sClfs_Txt
  full join  #TMP_dh_cal b on a.sFdbh=b.sFdbh and a.sSpbh=b.sspbh  
    and convert(date,d.dshrq)=CONVERT(date,a.dsj) and a.sjcfl   in ('入库','调入(配送折让)','调入(配送)','调入(配送)赠品')
   where 1=1 and a.nDhsl<>0  and d.dShrq is not null;
+
+
+---- 销售数据
+select a.SHOP_CODE,CONVERT(date,a.SALE_DATE) drq,max(DATEname(WEEKDAY,CONVERT(date,a.SALE_DATE))),sum(a.SALE_AMOUNT) nxsje,sum(a.SALE_QTY) nxssl,
+sum(a.SALE_AMOUNT-a.SALE_COST) nxsml from dbo.P_SALE_TOTAL_LIST_OUTPUT a 
+join dbo.goods c on a.ITEM_CODE=c.code
+where 1=1 and (( c.sort>'20' and c.sort<'40') or (
+LEFT(c.sort,4) in ('1105','1307','1309','1406') ))
+and LEFT(c.sort,4)<>'2201' and a.SHOP_CODE='018425'
+and CONVERT(date,a.SALE_DATE)>=CONVERT(date,GETDATE()-90)
+group by a.SHOP_CODE,CONVERT(date,a.SALE_DATE)  order by 2;
+
+
+--

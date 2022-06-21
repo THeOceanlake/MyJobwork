@@ -908,3 +908,61 @@ insert into BD_Flys_Value(sSpbh,sQybh,sFlys,sYsValue_V)
 select distinct sSpbh,a.sQybh,sFlys,sYsValue_V from Xp_BD_Flys_Value_All a
 join BD_Flb b on a.sFlbh=b.sFlbh
 where sFlys<>'档次'
+
+
+---  不动销天数
+select * into #Tmp_dpzb
+ from [122.147.10.202].dappresult.dbo.r_dpzb where sfdbh='018425';
+
+
+ with x0 as (
+select a.dYhrq,b.ddhrq dShrq,a. sdjlx sLx,b.sfdbh,b.sspbh,b.nsl nYhsl,b.ndhsl,b.sBzmx
+from [122.147.10.200].dappsource.dbo.tmp_yhb a 
+inner join [122.147.10.200].dappsource.dbo.tmp_yhmx b
+on a.sdh=b.sdh and a.sFdbh=b.sFdbh
+where 1=1  and a.dYhrq>=CONVERT(date,GETDATE()-180) 
+and (  a.dYhrq+2<GETDATE() or b.ddhrq is not null) and a.sfdbh='018425')
+,x1 as (select a.* from  x0 a 
+where  1=1 )
+select a.*,ROW_NUMBER()over(partition by a.sfdbh,a.sspbh order by dYhrq desc,nYhsl desc) id 
+into #Tmp_yh 
+from x0 a ;
+
+
+
+
+select a.sfdbh,a.sspbh,a.splbh,e.sflmc,a.sspmc,case when b.SEND_CLASS_T='01' then '配送' when b.SEND_CLASS_T='02' then '直送'
+when b.SEND_CLASS_T='03' then '一步越库' when b.SEND_CLASS_T='04' then '二步越库' end spsfs,c.scgqy,b.RETURN_ATTRIBUTE,a.nrjxl,a.nbdxts,d.nkcsl,d.nkcje,b.STOP_INTO,
+f.dyhrq,f.dShrq,
+case  when a.nrjxl=0 then 1000  when a.nrjxl>0 and  d.nkcsl/a.nrjxl>=1000 then 1000 else  d.nkcsl/a.nrjxl    end nzzts
+,case  when a.nrjxl=0 then 'bdx'  else '90天以上'  end  sflag  from  #Tmp_dpzb a 
+left join DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT b on a.sfdbh=b.DEPT_CODE and a.sspbh=b.ITEM_CODE
+join DappSource_Dw.dbo.goods c on a.sspbh=c.code
+left join DappSource_Dw.dbo.tmp_kclsb d on a.sfdbh=d.sfdbh and a.sspbh=d.sspbh and d.drq=CONVERT(date,GETDATE()-1)
+left join DappSource_Dw.dbo.tmp_spflb e on a.splbh=e.sflbh
+left join #Tmp_yh f on a.sfdbh=f.sfdbh and a.sspbh=f.sspbh and f.id=1
+where 1=1 and (a.nbdxts>40  or (a.nrjxl>0 and d.nkcsl/a.nrjxl>90)) and   (( c.sort>'20' and c.sort<'40') or (
+LEFT(c.sort,4) in ('1105','1307','1406') ))
+and LEFT(c.sort,4)<>'2201' and b.CHARACTER_TYPE='N' and d.nkcsl>0  and b.STOP_INTO='N'
+order by d.nkcje desc ;
+
+select * from #Tmp_yh
+
+--------  quyu maol
+select a.*,case when b.SEND_CLASS_T='01' then '配送' when b.SEND_CLASS_T='02' then '直送'
+when b.SEND_CLASS_T='03' then '一步越库' when b.SEND_CLASS_T='04' then '二步越库' end spsfs,c.scgqy  into #1 from DappSource_Dw.dbo.P_SALE_TOTAL_LIST_OUTPUT a 
+left join DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT b on a.SHOP_CODE=b.DEPT_CODE and a.ITEM_CODE=b.ITEM_CODE
+join DappSource_Dw.dbo.goods c on a.ITEM_CODE=c.code
+where a.SHOP_CODE='018425' and  b.CHARACTER_TYPE='N'
+and  CONVERT(date,a.SALE_DATE)>=CONVERT(date,GETDATE()-30) and CONVERT(date,a.SALE_DATE)<CONVERT(date,GETDATE())
+and   ((  c.sort<'40') or (
+LEFT(c.sort,4) in ('1105','1307','1406') ))
+and LEFT(c.sort,4)<>'2201';
+
+select a.scgqy,sum(a.SALE_AMOUNT) nxsje,sum(a.SALE_COST) nxscb,sum(a.SALE_AMOUNT-SALE_COST) nxsml
+ from #1  a
+ group by a.scgqy;
+
+
+
+-------

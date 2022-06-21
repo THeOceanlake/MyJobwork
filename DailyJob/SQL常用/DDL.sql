@@ -1,6 +1,7 @@
 
 -- 更新字段长度
-alter table T1 alter column F1 varchar(10)
+alter table T1 alter column F1 varchar(10);
+-- 更新
 
 
 -- 行列转换

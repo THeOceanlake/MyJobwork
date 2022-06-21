@@ -592,13 +592,28 @@ BEGIN
 		or (a.sPsfs<>'配送' and b.dSj>CONVERT(date,GETDATE()-14)));
 
 		-- Step 6.1:突发销售
+		-- 20220616修改 突发销售因含最近一段时间，而不是最后一次销售
+		select a.sfdbh,a.sspbh ,max(b.SALE_QTY) nxssl,sum(b.SALE_QTY) nzxssl 
+		into #jqxs
+		from #mdlkcsp a,#3 b where a.sfdbh=b.SHOP_CODE and a.sspbh=b.ITEM_CODE
+		and  (( a.sPsfs='配送' and CONVERT(date,b.SALE_DATE)>CONVERT(date,GETDATE()-5)) 
+		or (a.sPsfs<>'配送' and CONVERT(date,b.SALE_DATE)>CONVERT(date,GETDATE()-7))) 
+		group by a.sfdbh,a.sspbh having avg(b.SALE_QTY)>0 ;
+
 		update a set a.syy='突发销售' from #mdlkcsp a 
 		left join  #Tmp_dh_cal b on a.sFdbh=b.sfdbh and a.sSpbh=b.sSpbh and b.npm_cal=1
-		join #xsrq c on a.sFdbh=c.sFdbh and a.sSpbh=c.sSpbh and c.npm=1
-		where len(a.syy)=0  and  (( a.sPsfs='配送' and c.max_xs>CONVERT(date,GETDATE()-5)) 
-		or (a.sPsfs<>'配送' and c.max_xs>CONVERT(date,GETDATE()-14))) and c.nXssl>2      
-                 and   c.nXssl>=round(a.nzgsl*0.7,0) and c.nXssl>a.nRjxl*5
-			and (c.max_xs>b.dShrq or b.dShrq is null) ;
+		join #jqxs c on a.sFdbh=c.sFdbh and a.sSpbh=c.sSpbh 
+		where len(a.syy)=0  and c.nXssl>a.nRjxl*5 and c.nXssl>2      
+		and   c.nXssl>=round(a.nzgsl*0.7,0) ;
+
+		-- update a set a.syy='突发销售' from #mdlkcsp a 
+		-- left join  #Tmp_dh_cal b on a.sFdbh=b.sfdbh and a.sSpbh=b.sSpbh and b.npm_cal=1
+		-- join #xsrq c on a.sFdbh=c.sFdbh and a.sSpbh=c.sSpbh and c.npm=1
+		-- where len(a.syy)=0  and  (( a.sPsfs='配送' and c.max_xs>CONVERT(date,GETDATE()-5)) 
+		-- or (a.sPsfs<>'配送' and c.max_xs>CONVERT(date,GETDATE()-14))) and c.nXssl>2      
+        --          and   c.nXssl>=round(a.nzgsl*0.7,0) and c.nXssl>a.nRjxl*5
+		-- 	and (c.max_xs>b.dShrq or b.dShrq is null) ;
+ 
 
 	    -- Step 6.1.2 如果是非突发销售，而最近又没订货的，则是系统订额不足或人工未下单，如果未到订货日就会分错
 		  -- 生成日期
@@ -678,24 +693,45 @@ BEGIN
 	  -- Step 6.6 DC未送货 或 送货不足
 	  update a set a.dzhyhrq=b.dYhrq,a.syy='物流中心未送货'  from  #mdlkcsp a 
 		left join  #Tmp_dh_cal b on a.sFdbh=b.sfdbh and a.sSpbh=b.sSpbh and b.npm_cal=1 
-	  where 1=1  and   len(a.syy)=0  and b.sfdbh is not null  and   isnull(b.nShsl,0)=0 and a.sPsfs='配送'
+	  where 1=1  and   len(a.syy)=0  and b.sfdbh is not null  and   isnull(b.nShsl,0)=0 
+	  and a.sPsfs='配送'
 	  and b.nYhsl>0;
   
 	   update a set a.dzhyhrq=b.dYhrq,a.syy='物流中心送货不足'  from  #mdlkcsp a 
 		join  #Tmp_dh_cal b on a.sFdbh=b.sfdbh and a.sSpbh=b.sSpbh and b.npm_cal=1 
 	  where 1=1  and   len(a.syy)=0  and b.nShsl>0 and  b.nShsl*1.0/b.nYhsl<0.9 and a.sPsfs='配送' ;
 
-	  	     --- 更新物流有货未配 -- drop table #dckc
-			select distinct a.sSpbh into #dckc from #mdlkcsp a join dbo.Tmp_dckcb b
-			 on a.sSpbh=b.sSpbh and b.nSl>0 and  a.syy='物流中心未送货' and 
-			   DATEDIFF(day,a.dzhyhrq,CONVERT(date,b.sRq)) between 0 and 7 
-			 where  1=1; 
+	  -- 更新物流有货未配 -- drop table #dckc
+			-- select distinct a.sSpbh into #dckc from #mdlkcsp a join dbo.Tmp_dckcb b
+			--  on a.sSpbh=b.sSpbh and b.nSl>0 and  a.syy='物流中心未送货' and 
+			--    DATEDIFF(day,a.dzhyhrq,CONVERT(date,b.sRq)) between 0 and 7 
+			--  where  1=1; 
 
-			   update a set a.syy='物流中心有货未送' from  #mdlkcsp a join #dckc b  on a.sspbh=b.sspbh
-			   where a.syy='物流中心未送货'  ;
+			--    update a set a.syy='物流中心有货未送' from  #mdlkcsp a join #dckc b  on a.sspbh=b.sspbh
+			--    where a.syy='物流中心未送货'  ;
 
-			   update a set a.syy='物流中心无货未送' from  #mdlkcsp a  
-			   where a.syy='物流中心未送货' ;
+			--    update a set a.syy='物流中心无货未送' from  #mdlkcsp a  
+			--    where a.syy='物流中心未送货' ;
+		-- 用一个新思路，既门店订货日两天内，DC库存大于总订货库存，才是有货未送
+		select CONVERT(date,b.sRq) drq, a.sSpbh,sum(isnull(b.nsl,0)) nkczsl into #dckc 
+		from #mdlkcsp a join dbo.Tmp_dckcb b
+			on a.sSpbh=b.sSpbh and b.nSl>0 and  a.syy='物流中心未送货' and 
+			   DATEDIFF(day,a.dzhyhrq,CONVERT(date,b.sRq)) between 0 and 1 
+			 where  1=1 group by CONVERT(date,b.sRq) , a.sSpbh; 
+		-- 门店总订货量
+		select convert(date,a.dzhyhrq) drq,a.sspbh,sum(isnull(b.nYhsl,0)) nyhsl into #Tmp_mdyhhz 
+		from #mdlkcsp a 
+		join #Tmp_yh  b on a.sfdbh=b.sfdbh and a.sspbh=b.sspbh 
+			and convert(date,a.dzhyhrq)=convert(date,b.dyhrq)
+		where 1=1    and  a.syy='物流中心未送货'    group by convert(date,a.dzhyhrq),a.sSpbh;
+
+		update a set a.syy='物流中心有货未送' from #mdlkcsp a 
+		  join #Tmp_mdyhhz b on a.dzhyhrq=b.drq and a.sspbh=b.sspbh
+		  join #dckc c on DATEDIFF(day,a.dzhyhrq,CONVERT(date,c.dRq)) between 0 and 1  and a.sspbh=c.sspbh
+		where 1=1 and a.syy='物流中心未送货'  and c.nkczsl>b.nyhsl;
+
+		update a set a.syy='物流中心无货未送' from  #mdlkcsp a  
+		where a.syy='物流中心未送货' ;
 	  -- Step 6.7 :系统未下单，或定额不足
 	  -- 系统未下单 需要考虑节奏日，如果即使到节奏日出了单，那也是定额不足，后面用异常出单修正原来的原因
 		update a set  a.syy='系统定额不足'  from  #mdlkcsp a 
@@ -748,11 +784,11 @@ BEGIN
 				 where a.syy in ('系统定额不足') and b.sFdbh is not null; 
 		   end
 	
-		 update a set a.syy='其他' from #mdlkcsp a    where len(a.syy)=0 ; 
-		 delete from dbo.TMP_MDLKCYY where drq=convert(date,GETDATE());
-                 delete from dbo.TMP_MDLKCYY where drq<=convert(date,GETDATE()-100);
-		 insert into dbo.TMP_MDLKCYY(drq,sfdbh,sspbh,sspmc,sfl,nZdsl,nZgsl,szdbh,ssfkj,spsfs,syy,dzhyhrq,nrjxl,nrjxse,nsl)
-		 select convert(date,GETDATE()) drq,a.sFdbh,a.sSpbh,a.sSpmc,a.sFl,a.nZgsl ,a.nZdsl ,a.sZdbh,a.sSfkj,a.sPsfs,a.syy,
+		update a set a.syy='其他' from #mdlkcsp a    where len(a.syy)=0 ; 
+		delete from dbo.TMP_MDLKCYY where drq=convert(date,GETDATE());
+        delete from dbo.TMP_MDLKCYY where drq<=convert(date,GETDATE()-100);
+		insert into dbo.TMP_MDLKCYY(drq,sfdbh,sspbh,sspmc,sfl,nZdsl,nZgsl,szdbh,ssfkj,spsfs,syy,dzhyhrq,nrjxl,nrjxse,nsl)
+		select convert(date,GETDATE()) drq,a.sFdbh,a.sSpbh,a.sSpmc,a.sFl,a.nZgsl ,a.nZdsl ,a.sZdbh,a.sSfkj,a.sPsfs,a.syy,
 		 a.dzhyhrq,b.nRjxl,b.nRjxse ,nsl  from  #mdlkcsp a 
 		 left join dbo.R_dpzb b on  a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh;
 
@@ -760,7 +796,7 @@ BEGIN
 		 
   -- 第二部分 门店大库存
     -- Step 2.1 ：大库存数据生成 drop table #mddkc
-			with x0 as (
+		with x0 as (
 		select a.*,b.nSl, convert(numeric(15,4),case when  a.nrjxl*a.nsj=0 then 300 else b.nsl*a.njj*1.0/(a.nRjxl*a.nsj) end) nzzts  from #base_sp a 
 		left join #mdkc b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh 
 		where 1=1 and ISNULL(b.nsl,0)>6 and ISNULL(b.nsl,0)*a.nJj>50 and b.nsl*a.njj*1.0/(a.nRjxl*a.nsj+0.001)>60)

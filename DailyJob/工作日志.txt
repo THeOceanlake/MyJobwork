@@ -1144,3 +1144,202 @@ group by DATEADD(day,1,CONVERT(date,a.djssj));
  SELECT srq,CONVERT(MONEY,SUM(ncxqhs))/SUM(ncxsps) FROM Source_His.dbo.Shop_Cqlnew 
      WHERE sfdbh='018425' AND srq>='2022-05-20'
      GROUP BY srq;
+
+
+--  美宜佳商品库存和定额
+select convert(date,a.djssj) drq, a.sFdbh,a.sSpbh,nZdsl,nRjxl_De,nJysx,nJyxx,sSfkj,sYhjz,b.nSl,nzt,nYhsl
+from dbo.Sys_GoodsConfig_his a 
+left  join  dbo.Tmp_Kclsb b  on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh and convert(date,a.djssj)=DATEADD(day,1,convert(date,b.dRq))
+where a.sFdbh='粤21989' and  a.sSpbh='2003135' 
+and convert(date,a.djssj)>=CONVERT(date,getdate()-5)  order by 1;
+
+
+
+
+----------0530---------
+
+select a.sMonth,a.sFdbh,a.sSpbh,CONVERT(date,b.SALE_DATE) drq,sum(b.SALE_QTY) nxssl,sum(b.SALE_AMOUNT) nxsje,
+sum(b.SALE_AMOUNT-b.SALE_COST) nxsmle into #Tmp_xs from DappSource_Dw.dbo.Tmp_TailCargo a 
+join DappSource_Dw.dbo.P_SALE_TOTAL_LIST_OUTPUT b on a.sFdbh=b.SHOP_CODE and a.sSpbh=b.ITEM_CODE
+where CONVERT(date,b.SALE_DATE)>=a.Bdate and CONVERT(date,b.SALE_DATE)<CONVERT(date,GETDATE())
+group by a.sMonth,a.sFdbh,a.sSpbh,CONVERT(date,b.SALE_DATE)
+;
+
+
+with x0 as (
+select a.sMonth,a.Bdate,a.Edate,b.drq, a.sFdbh,a.sSpbh,b.nDqkc,b.nZxssl,b.sZt,
+sum(d.nxssl) nzxssl1,sum(d.nxsje) nxsje,sum(d.nxsmle) nxsmle 
+ from DappSource_Dw.dbo.Tmp_TailCargo a
+left join DappSource_Dw.dbo.Tmp_TailCargo_Suggest b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh
+  and a.sMonth=b.sMonth
+left join DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT c on a.sFdbh=c.DEPT_CODE and a.sSpbh=c.ITEM_CODE
+left join #Tmp_xs d on b.sMonth=d.sMonth and b.sFdbh=d.sFdbh and b.sSpbh=d.sSpbh and d.drq<b.drq
+where 1=1 and a.sfdbh<>'015901'  and b.sZt not in ('状态开通,请核查！','状态开通请核查') and b.drq  is not null
+group by  a.sMonth,a.Bdate,a.Edate,b.drq, a.sFdbh,a.sSpbh,b.nDqkc,b.nZxssl,b.sZt  
+)
+select a.sMonth,a.Bdate,a.Edate,a.drq,count(1) nzsps,
+sum(case when isnull(a.nDqkc,0)<=0 then 1 else 0 end ) nywcts,sum(a.nzxssl1),sum(a.nxsje) nxsje,sum(a.nxsmle) nxsmle
+from x0 a  group by  a.sMonth,a.Bdate,a.Edate,a.drq
+order by  a.drq;
+
+
+
+delete from Tmp_StopList where drq=CONVERT(date,GETDATE()-1);
+insert into Tmp_StopList(drq,sFdbh,sSpbh,STOP_INTO,nKcsl)
+select b.drq,a.DEPT_CODE,a.ITEM_CODE,a.STOP_INTO,b.nkcsl from DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT a 
+join DappSource_Dw.dbo.tmp_kclsb b on a.DEPT_CODE=b.sfdbh and a.ITEM_CODE=b.sspbh and b.drq=CONVERT(date,GETDATE()-1)
+join DappSource_Dw.dbo.goods c on a.ITEM_CODE=c.code 
+where 1=1 and a.Dept_code='018425' and ( a.STOP_INTO<>'N'  or a.STOP_INTO is null   ) and a.CHARACTER_TYPE='N' and b.nkcsl>0
+ and a.c_introduce_date is not null  and  (( c.sort>'20' and c.sort<'40') or (
+LEFT(c.sort,4) in ('1105','1307','1406') ))
+and LEFT(c.sort,4)<>'2201' ;
+
+
+select * into #Tmp_dpzb
+ from [122.147.10.202].dappresult.dbo.r_dpzb where sfdbh='018425';
+
+
+ with x0 as (
+select a.dYhrq,b.ddhrq dShrq,a. sdjlx sLx,b.sfdbh,b.sspbh,b.nsl nYhsl,b.ndhsl,b.sBzmx
+from [122.147.10.200].dappsource.dbo.tmp_yhb a 
+inner join [122.147.10.200].dappsource.dbo.tmp_yhmx b
+on a.sdh=b.sdh and a.sFdbh=b.sFdbh
+where 1=1  and a.dYhrq>=CONVERT(date,GETDATE()-180) 
+and (  a.dYhrq+2<GETDATE() or b.ddhrq is not null) and a.sfdbh='018425')
+,x1 as (select a.* from  x0 a 
+where  1=1 )
+select a.*,ROW_NUMBER()over(partition by a.sfdbh,a.sspbh order by dYhrq desc,nYhsl desc) id 
+into #Tmp_yh 
+from x0 a ;
+
+
+
+
+select a.sfdbh,a.sspbh,a.splbh,e.sflmc,a.sspmc,case when b.SEND_CLASS_T='01' then '配送' when b.SEND_CLASS_T='02' then '直送'
+when b.SEND_CLASS_T='03' then '一步越库' when b.SEND_CLASS_T='04' then '二步越库' end spsfs,c.scgqy,b.RETURN_ATTRIBUTE,a.nrjxl,a.nbdxts,d.nkcsl,d.nkcje,b.STOP_INTO,
+f.dyhrq,f.dShrq,
+case  when a.nrjxl=0 then 1000  when a.nrjxl>0 and  d.nkcsl/a.nrjxl>=1000 then 1000 else  d.nkcsl/a.nrjxl    end nzzts
+,case  when a.nrjxl=0 then 'bdx'  else '90天以上'  end  sflag  from  #Tmp_dpzb a 
+left join DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT b on a.sfdbh=b.DEPT_CODE and a.sspbh=b.ITEM_CODE
+join DappSource_Dw.dbo.goods c on a.sspbh=c.code
+left join DappSource_Dw.dbo.tmp_kclsb d on a.sfdbh=d.sfdbh and a.sspbh=d.sspbh and d.drq=CONVERT(date,GETDATE()-1)
+left join DappSource_Dw.dbo.tmp_spflb e on a.splbh=e.sflbh
+left join #Tmp_yh f on a.sfdbh=f.sfdbh and a.sspbh=f.sspbh and f.id=1
+where 1=1 and (a.nbdxts>40  or (a.nrjxl>0 and d.nkcsl/a.nrjxl>90)) and   (( c.sort>'20' and c.sort<'40') or (
+LEFT(c.sort,4) in ('1105','1307','1406') ))
+and LEFT(c.sort,4)<>'2201' and b.CHARACTER_TYPE='N' and d.nkcsl>0  and b.STOP_INTO='N'
+order by d.nkcje desc ;
+
+select * from #Tmp_yh
+
+----- 2022-06-02 的数据---------
+insert into   DappSource_Dw.dbo.Tmp_TailCargo(sMonth,Bdate,Edate,sFdbh,sFdmc,sSpbh,sSpmc,nTjj,nTsj,sManager,sgys,sgysmc,ssfkt)
+select '2022年6月计划',convert(date,'2022-06-01'),CONVERT(date,'2022-08-31'),
+机构代码,门店名称,商品编码,商品名称,特进价,特售价,采购经理,供应商编码,供应商名称,'否' from DappSource_Dw.dbo.Tmp_dr_tailcargo05 a 
+where  [（执行当月）]='2022-06-01 00:00:00.000'
+
+-- 计划方案重复值检测
+select a.sFdbh,a.sSpbh,a.sSpmc,count(1)  from dbo.Tmp_TailCargo a 
+group by a.sFdbh,a.sSpbh,a.sSpmc having COUNT(1)>1
+order by 4 desc
+
+
+delete a  from dbo.Tmp_TailCargo a 
+where a.sMonth='2022年5月计划' and  ssfkt='是'
+
+delete a  from dbo.Tmp_TailCargo a 
+join dbo.goods b on a.sSpbh=b.code
+where a.sMonth='2022年5月计划' and   b.scgqy='生鲜部' 
+
+
+delete a  from dbo.Tmp_TailCargo a 
+where a.sMonth='2022年5月计划' and  a.sFdbh='015901'
+
+---- 停购进程
+-- Step 0 :取一段时间内的所有数据
+select * into #Tmp_StopList from Tmp_StopList  a  
+where a.drq>=CONVERT(date,GETDATE()-30) and a.drq<CONVERT(date,GETDATE());
+
+-- Step 1：前后两天的数据对比：新增商品数，退出商品数，总库存金额 -- drop table #r
+select ISNULL(b.drq,DATEADD(day,1,a.drq)) drq,  ISNULL(b.sFdbh,a.sFdbh) sFdbh,ISNULL(b.sSpbh,a.sSpbh) sSpbh,
+ b.nkcje,case when  ISNULL(a.nKcsl,0)>0 and ISNULL(b.nKcsl,0)<=0 then 'down' 
+ when  ISNULL(a.nKcsl,0)<=0 and ISNULL(b.nKcsl,0)>0 then 'new' else 'old' end  sflag  into #r   from #Tmp_StopList a  
+full join #Tmp_StopList b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh and DATEDIFF(DAY,a.drq,b.drq)=1
+	and  a.drq>=CONVERT(date,'2022-05-28')  and b.drq<CONVERT(date,GETDATE())
+	and DATEADD(day,1,a.drq)<CONVERT(date,GETDATE())
+where 1=1  ;
+
+select a.drq,a.sFdbh,count(1) ntgsps,sum(a.nkcje) nKcje,sum(case  when a.sflag='down' then 1 end ) ntcsl,
+sum(case when a.sflag='new' then 1 else 0 end ) nxzsl,sum(case when a.sflag='old' then 1 end ) nbl from #r a  
+where a.drq<CONVERT(date,GETDATE()) group by a.drq,a.sFdbh
+order by a.drq;
+
+SELECT sFdbh,sSpbh,sSpmc,sPlbh,sZdbh,nJysx,nJyxx into #1   FROM dbo.R_Dpzb  WHERE  sPlbh LIKE  '340203%'
+and sZdbh='1' order by case when  nRjxl=0 then 1000 else  nJyxx/nRjxl end desc
+
+
+
+SELECT sFdbh,sSpbh,sSpmc,sPlbh,sZdbh,nJysx,nJyxx into #1   FROM dbo.H_Dpzb  WHERE  sPlbh LIKE  '340203%'
+
+select sFdbh,sSpbh,sSpmc,sPlbh,sZdbh,nJysx,nJyxx,'20220522' srq into #2
+from dbo.H_Dpzb a  where RIGHT(TaskID,8)='20220522' and sPlbh LIKE  '340203%'
+
+-- Step 0 ：
+
+select a.*,b.srq,b.nJysx,b.nJyxx  from #1 a
+left join #2 b on a.sFdbh=b.sFdbh and a.sSpbh=b.sSpbh
+where 1=1  and  (b.nJyxx=0 or ( b.nJyxx>0  and a.nJyxx/b.nJyxx>1.5))
+order by a.nJyxx desc
+
+
+update a set a.supdate='中段退出',a.dLast_updateTime=GETDATE() from dbo.Tmp_TailCargo a
+left join Tmp_sheet3 b on a.sFdbh=b.机构代码  and a.sSpbh =b.商品编码 
+ where sMonth='2022年5月计划' and  b.机构代码  is null 
+
+ --- 引进黑名单更新
+ insert into DAppResult.dbo.GoodsDistirbutionManagement_blockedGoods(sfdbh,sspbh,sBlockedPhase,sUpdateUserid,dUpdatetime)
+select '018425',code,'不引进','dxp',GETDATE() from [122.147.160.31].dappsource_Dw.dbo.goods 
+where code in ('11011005','11010997','11012010','11012003','11020262','05010452','11030606','11030607','11030608','11030609','11030791','11040449'
+,'11050107','05021158','05021258','05022421','13010006','05030070','05030456','05022687','05021148','05021137','03021099','13021393','13060252'
+,'13060255','13070271','13100102','14060065','04030162','04030377','15012152','15012147','15010428','15010429','15010430','15012242','15012243'
+,'15012244','15012245','15012246','15012247','15012167','15012168','15012169','15012212','15012213','15012214','01040773','01040823','01040628'
+,'15020924','01050148','01010289','15060394','01010349','01010350','01010388','01010390','15010593','15010594','15010595','15010596','15010598'
+,'15010599','15060395','15060397','15060398','15060400','15060401','15061564','15061565','15060399','01060336','15061559','07090036','07090084'
+,'07090085','21030279','07090389','07090447','07090079','07090080','18020003','07090229','21030065','07011477','21060085','07011345','07011082'
+,'21060102','21010045','21010454','22010358','22010546','21010429','22030524','22040686','26020681','23011384','23012646','24011530','23021129'
+,'23022185','23040549','23050596','23050600','23050472','24051390','23050593','23050336','23050433','23070382','23070383','23080302','29011400'
+,'29011275','27010158','26030351','24031708','25041457','24042574','24042575','24051903','34022510','75070826','37014329','34021914')
+
+
+
+-- Step 1: 基础数据准备
+-- drop table #raw_sp
+select a.sMonth,a.Bdate,a.Edate,a.sFdbh,a.sFdmc,a.sSpbh,a.sSpmc,a.sgys,a.sgysmc into #raw_sp  
+from DappSource_Dw.dbo.Tmp_TailCargo a where 1=1 and a.sUpdate is null; 
+
+ 
+-- Step 3:基础数据准备
+-- drop table #1;
+select a.sFdbh sFdbh,a.sFdmc sFdmc,a.sSpbh sSpbh,a.sSpmc sSpmc,a.smonth,a.Bdate,a.Edate,
+b.SHOP_SUPPLIER_CODE sgys,b.SHIFT_PRICE njj,b.RETAIL_PRICE nsj,
+case when b.SEND_CLASS_T='01' then '配送' when b.SEND_CLASS_T='02' then '直送'
+when b.SEND_CLASS_T='03' then '一步越库' when b.SEND_CLASS_T='04' then '二步越库' end spsfs,
+b.stop_into,b.stop_sale,b.VALIDATE_FLAG,b.character_Type,b.min_purchase_qty nPsbzs
+,b.c_disuse_date,b.c_introduce_date,b.return_attribute,b.DisPlay_mode  into #1
+from  #raw_sp  a 
+left join DappSource_Dw.dbo.P_SHOP_ITEM_OUTPUT  b on b.DEPT_CODE=a.sFdbh and b.ITEM_CODE=a.sSpbh 
+where 1=1   and ( b.STOP_INTO<>'N' or b.STOP_INTO is null) ;
+
+
+
+select a.sMonth,a.Bdate,a.Edate,
+max(DATEDIFF(day,a.bdate,a.Edate)),
+max(DATEDIFF(day,a.bdate,convert(date,getdate()))),COUNT(1) ,COUNT(distinct sFdbh) nfds,COUNT(distinct sSpbh) nsps
+ from #1  a 
+where 1=1  group by a.sMonth,a.Bdate,a.Edate
+order by a.sMonth
+
+
+---------2022-06-20-------
+1、思考退货处理，进度
+  进度公式=''
